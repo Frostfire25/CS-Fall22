@@ -1,0 +1,45 @@
+Challenge Problem: Common Dictionary Algorithms
+Write the following standard data structure functions using Python. The input for each should be an array
+A (along with any other information you may need). Determine the (tight) Big-Oh of each of them based on
+n, the number of elements currently in the array. If you decide to do something beyond the trivial for each,
+justify in words why the Big-Oh is what you have claimed based on the construction of the data structure.
+• push and pop (treat it like a stack)
+• enqueue and dequeue (treat it like a queue)
+• removeDuplicates (turn it into a set)
+• insert (treat it as a binary search tree, assume its initial configuration is already a valid BST)
+
+// M is the number to be pushed, A is the array
+// Pushes element M to the front of array A.
+// O(n)
+def push( M, A ):
+	N = [M]
+	for(i in range(len(A)):
+		N[i+1] = A[i]
+	A = N	
+
+// A is the array
+// Removes and returns the first element in the array
+// O(n)
+def pop( A ):
+	F = A[0]
+	N = []
+	for(int i + 1 in range(len(A)):
+		N[i - 1] = A[i]
+	A = N
+	return F;
+
+
+// M is the element being queued, A is the array
+// O(1)
+def enqueue( M, A ):
+	A[len(A)] = M
+
+// A is the array
+// O(n)
+def dequeue( A ):
+	return pop(A)
+	
+// A is the array
+// Removes duplicate values in array A	
+def removeDuplicates( A ):
+	

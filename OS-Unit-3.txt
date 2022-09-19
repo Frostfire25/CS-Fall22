@@ -1,0 +1,39 @@
+Process Scheduling - 
+	The objective of multiprogramming is to have some process running at all times, to maximize CPU utilization.
+	Process scheduler selects amoung available process for the next execution on CPU core.
+	Goal - Maximize CPU use, quickly switch processes onto CPU core.
+	Maintains a scheduling queue of processes.
+		- Ready queue
+		- Wait queue
+		
+	When in Ready Queue i goes strait to the CPU and then completes.
+		- If there is an interrupt, it goes to the Waiting Queue.
+	
+	CPU switch from process to process.
+	
+Process Block
+	- In the kernel a process is represented by using a Data Structure called Process Block (PCB)
+		- Contains:
+			- Process ID
+			- Process State
+			- Program counter
+			- Registers
+			- Memory Limits
+			- List of open files
+
+Context Switch
+	- Interrupt causes the operating system to change a CPU from its current task to run a kernal routine.
+	- When the CPU switches to another process, the CPU must save te state of the old process and load the state for the new process
+	 via the context switch.
+	- Context of a process is a PCB
+	
+Operation on Process
+	- System must provide operations for, Process Creation, and Process Termination.
+	- Process Creation
+		- Parent creates child process, which in turn the child becomes the parent. It becomes a process tree.
+		- Generally, process identified and managed via a process identifier, pid.
+		- Sometimes the parent and child will, sort of, or never share resources.
+		- fork() on UNIX creates a new process
+		- exec() call used after a fork() to replace the process memory space with a new program
+		- Parent process calls wait() waiting for the child to terminate.
+		

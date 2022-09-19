@@ -1,0 +1,68 @@
+Computer System Organazition
+
+CPU, Disk Controller, USB Controller, Graphics Adapter
+	(disk)			(mouse, keyboard, ect.)
+	
+Interrupt v Trap.
+Interrupt: allows the hardware to inform the CPU of an important event. (Hardware generated), can occur at any time. Asynchronous Process
+Trap: Software generated event that has the kernel achieve a task. (Software generated), Synchronous Process. 
+	- All Traps are interrupts, not all interrupts are traps.
+
+Disabling Interrupt: 
+
+DMA (Direct Memory Access): A feature of computer systems allows hardware to access the main system memory.
+
+Operating System Service: 
+Provides: 
+	- UI: Command Line (CLI), Graphical User Interface (GUI), touch=screen, Batch
+	- Program Execution: The system must be able to load a program into memory.
+	- I/O operation - A running program may requiere I/O 
+	- File Service
+	- Commnications / Networking - May be via packets, memory
+	- Error Detection - Os needs to be constantly aware of possible errors.
+	
+OS Structure Monolithic Kernel
+A monolithic kernel is an OS architecture where the entire OS is working.
+
+Micro Kernel: todo
+
+System Call: When you ask for something you are calling through the system.
+Win32 API, POSIX API (portable operating system interface), (linux, mac os x), Java API on the JVM
+Implementation: Typically, a number is associated with each system call. call id,
+The system call interface invokes the intended system call in OS kernel.
+Design: 
+	- Issued by a user land program.
+	- Runime library is invoked
+	- Runime library prepares the data and hands it to the system call interface.
+	- System call causes a trap and the system call identifier is proved to the kernel,
+	- The kernel uses the system call handler and returns the data to the caller,
+	- Kernel uses the ID to finished and find when the system call is completed.
+	
+API - System Call - OS Relationship.
+
+Types: File management, Device Manager (request device, release device, read, write, reposiion, get device attributes, logically attach or detach
+devises from ther code.
+
+Linkers and Loaders:
+Linker: combines source code into single binary executable files. Also brings in libraries. <! Grabs dependencies, included files ->
+	- Program resides on secondary storage as a binary executable
+Loaders: Loads the program into memory. Makes the system call. 
+
+Kernel: The way are data structured ino the system.
+	- Computer has 2 mode of OS
+		- Kernel Mode
+		- User Mode
+	- The OS is the most fundamental piece of software and runs in the kernal in superviser mode. 
+	- In superviser mode the OS has access to all of the hardware.
+	- Everything running in kernel mode is clearly a part of OS, but some program...
+	
+Microkernels:
+	- Moves as much from the kernal into user space
+	- Mach is an example of Microkernels.
+		- Mach OS X kernel (Darwin) partly based on Mach
+	- Communication takes place between user modules using message passing
+	- Extends the kernel
+	- Traditional OS functions, such as device drivers, protocol stacks, and file systems, are typically remove from the microkernel
+	itself and are instead run in user space.
+	
+

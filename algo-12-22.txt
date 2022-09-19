@@ -1,0 +1,14 @@
+Algorithims 9/12/2022
+
+Factorial Algorithim
+
+def fact( n )
+	if n > 1
+		return fact(n - 1) * n
+	else 
+		return 1
+
+C(n) = (# of calls made for 1 call) + (number of recursive calls)*(number of cals made for rest of recursion, looks like recursive call)
+C(n) = 1 + 1*C(n-1)
+
+2^k * C(n-k) + k
