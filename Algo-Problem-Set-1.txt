@@ -1,0 +1,126 @@
+1. (4 points) Order the following functions in nondecreasing asymptotic order: 
+n^2 , lg n, n^2lg n and 2^(lg n). Please justify your answer.
+
+1. lg n	
+2. 2^(lg n)
+3. n^2 lg n
+4. n^2
+
+2. Consider code for the algorithm Mystery below:
+
+-- Code --
+
+(a) (3 points) What does this algorithm compute?
+(b) (6 points) What is the running time of this algorithm? Please be sure to show all
+your work and use big-O notation.
+
+
+3. (5 points) Using back substitution (not the master method), give the asymptotic bound
+for the running time
+
+T(n) = T(n/2) + n^2
+Assume that T (1) = 1. Please show all your work.
+
+1
+
+4. Consider the following recursive algorithm
+# Input : An array of integers A
+# Output : The returned value is an integer
+def Enigma ( A ):
+if( len( A ) == 1 ):
+return A[0]
+else :
+return Enigma ( A[ : math . floor ( len ( A )/2 ) ] ) *
+Enigma ( A[ math . floor (len ( A )/2 ) : ] )
+
+(a) (3 points) What does Enigma compute?
+(b) (4 points) What recurrence relation describes the running time of Enigma?
+(c) (5 points) Find the closed form of your recurrence from part b, showing all work.
+What is the asymptotic running time (Big-Oh) of this algorithm?
+
+------------------------
+
+Substitution
+
+T(n) = T(n - 1) + n
+T(n) = T(n - 1 - 1) + (n - 1) + n
+T(n) = T(n - 3) + (n - 2) + (n - 1) + n
+
+T(n) = T(n - k) + sum(i = 0, k - 1: n-i)
+
+Base Case: T(1) = 1
+n - k = 1
+k = n - 1
+
+T(1) = sum(i = 0, n - 2: n) - sum(i = 0, n - 2: i)
+
+
+
+n = 2^k
+log(2) n = k
+
+
+-------------------
+
+Binary Recursive Problem
+
+Lines - Cost
+1	t
+2	1
+3	t-1
+4	t-1
+
+T(n) = C(n / 2) + 1
+
+Base Case: C(1) = 1
+
+C(n) = C((n - 1) / 2) + 2
+C(n) = C((n - 2) / 2) + 3
+
+C(n) = C((n - k) / 2) + k
+
+Base case called when: k = n - 1
+
+C(n) = C(1/2) + n - 1
+Running Time = O(n)
+
+3. 
+# Recursive method that prints all the pairs from an input array
+# Input: array of numbers
+# Output: Prints all pairs
+def printing_pairs( arr ):
+    # If we are on the last element, return
+    if len(arr) == 1:
+        return
+
+    # Print this element as pairs with the other elements
+    element = arr[0]
+    for n in range(1, len(arr)):
+        print("["+str(element)+","+str(arr[n])+"]")
+
+    # Use slicing to recursivley remove the first element in r
+    printing_pairs( arr[1:] )
+
+
+# Initilize array and run method
+arr = [3,4,1,6]
+printing_pairs( arr )
+
+Lines - Cost
+1	n
+2	1
+3	n - 1
+4	n - 1 
+5	sum(i = 0, n - 1, i)
+6 	n - 1
+
+T(1) = 1
+T(n) = T(n - 1) + sum(i = 0, n - 1, i) + (n - 1)
+
+T(n) = T(n - k) + sum(i = 0, k - 1, i) + (k - 1)
+
+T(n) = T(n - k) + ((n-1)(n-2))/2 + (n - 1)
+
+
+
+

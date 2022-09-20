@@ -1,4 +1,5 @@
-import * as THREE from "/threejs/three.js-master/three.js-master/build/three.module.js"
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
 
 // Create the object to represent a triangle
 function Triangle (a, aColor, b, bColor, c, cColor) {
@@ -57,11 +58,12 @@ renderer.setPixelRatio(document.getElementById('myCanvas').devicePixelRatio);
 
 // Create a list of 10 random points
 
-var pointlist = new Array(10);
-for(var i = 0; i < 10; i++) {
-    pointlist[i] = new point(Math.random(), Math.random(), 0);
+var pointlist = new Array(25);
+var geometry = new THREE.Geometry();
+for(var i = 0; i < 25; i++) {
+    pointlist[i] = new point(Math.random(), Math.random(), Math.random());
+    geometry.vertices.push( new THREE.Vector3(pointlist[i].x, pointlist[i].y, pointlist[i].z));
 }
-
 
 
 // Initiates graphical loop

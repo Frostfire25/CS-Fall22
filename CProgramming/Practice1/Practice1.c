@@ -5,6 +5,7 @@
 #include<conio.h>  
 #include<stdlib.h>
 #include"Practice1.h" // define the header file  
+#include <unistd.h> // Unix import
 
 // Implementations
 void *malloc(size_t size);
