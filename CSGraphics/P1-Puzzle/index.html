@@ -24,11 +24,63 @@ scene.add( camera );
 // Renderer 
 
 var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
-renderer.setClearColor( 0xffffff, 1 );
+//renderer.setClearColor( 0xffffff, 1 );
+renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
 // If you want this to span the window, instead of using the myCanvas object, use the window object
 renderer.setPixelRatio(window.devicePixelRatio);
 
 // Objects & Functions
+
+// Create the object to represent a triangle
+function Triangle (a, b, c, color) {
+
+this.vertices = [
+  a[0], a[1], a[2],
+  b[0], b[1], b[2],
+  c[0], c[1], c[2]
+];
+
+this.color = color;
+
+// The function that actually adds the triangle geometry to the scene
+this.render = function() {
+  // Create and assign the geometry
+  this.geom = new THREE.BufferGeometry();  
+  
+  // Assign attributes to geometry
+  this.geom.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array(this.vertices), 3));
+  this.geom.setAttribute( 'color' , this.color);
+
+  this.material = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
+  this.mesh = new THREE.Mesh( this.geom, this.material );
+
+  scene.add(this.mesh);
+ }	
+}
+
+function Square(a, b, c, d, color) {
+
+this.vertices = [
+  a[0], a[1], a[2],
+  b[0], b[1], b[2],
+  c[0], c[1], c[2],
+  d[0], d[1], d[2]
+];
+
+this.color = color;
+
+ // The function that actually adds the triangle geometry to the scene
+ this.render = function() {
+    this.lowerTri = new Triangle(a, b, c, this.color);
+    this.upperTri = new Triangle(a, c, d, this.color);
+
+    this.lowerTri.render();
+    this.upperTri.render();
+}	
+
+}
+
+
 
 // Gets a random number
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
@@ -36,40 +88,119 @@ function getRandomArbitrary(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function point2D(x, y) {
-    this.x = x;
-    this.y = y;
+// Represents a point in the puzzle box
+class point2D {
 
-    function toString() {
-        return '[${this.x}, ${this.y}]';
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+
+    toString() {
+        return `[${this.x} , ${this.y}]`;
     };
+
+}
+
+class Piece {
+
+  constructor(points, color) {
+    this.points = points;
+    this.color = color;
+  }  
+
 }
 
 // Initilizing Objects
 
-const PUZZLE_WIDTH = 1;
-const PUZZLE_HEIGHT = 0.5;
+const PUZZLE_WIDTH = 2;
+const PUZZLE_HEIGHT = 1.25;
 const NUMBER_OF_PIECES = 6;
+const X_LEVEL = 0;
+const Y_LEVEL = 0;
 
 // Creating black outline box for puzzle
-const geometry = new THREE.BoxGeometry( PUZZLE_WIDTH + 0.045, PUZZLE_HEIGHT + 0.025, 2 );
+const geometry = new THREE.BoxGeometry( PUZZLE_WIDTH + 0.045, PUZZLE_HEIGHT + 0.025, 0 );
 const material = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'black' )} );
 const cube = new THREE.Mesh( geometry, material );
-cube.position.setY(0.25);
+cube.position.setX(X_LEVEL);
+cube.position.setY(Y_LEVEL);
 scene.add( cube );
 
 // Creating the inside box
-const insideBox = new THREE.BoxGeometry( PUZZLE_WIDTH, PUZZLE_HEIGHT, 2 );
+const insideBox = new THREE.BoxGeometry( PUZZLE_WIDTH, PUZZLE_HEIGHT, 0 );
 const insideBoxM = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'white' )} );
 const insidBoxCube = new THREE.Mesh( insideBox, insideBoxM );
-insidBoxCube.position.setY(0.25);
+insidBoxCube.position.setX(X_LEVEL);
+insidBoxCube.position.setY(Y_LEVEL);
 scene.add( insidBoxCube );
 
 // Draw # of Pieces (NUMBER_OF_PIECES)
 
-for(var i = 0; i < NUMBER_OF_PIECES; i++) {
-    console.log(new point2D(getRandomArbitrary(0, PUZZLE_WIDTH), getRandomArbitrary(0, PUZZLE_HEIGHT)).toString());
+var prior_point = null;
+for(var i = 0; i < NUMBER_OF_PIECES + 1; i++) {
+   
+    
+    // Get random values for this point.
+    var x = getRandomArbitrary(0, PUZZLE_WIDTH);
+    var y = getRandomArbitrary(0, PUZZLE_HEIGHT);
+
+    // Creates a random point
+    var point = new point2D(x, y);      
+
+    // Draw Shape
+    if(prior_point != null) {
+      
+      // Creates a random color
+      var color = new THREE.Color();
+      color.setHex(Math.random() * 0xffffff);
+      
+
+
+    } 
+
+    prior_point = point;
+    
+
 }
+
+var x = getRandomArbitrary(-1 * PUZZLE_WIDTH, PUZZLE_WIDTH);
+var y = getRandomArbitrary(-1 * PUZZLE_HEIGHT, PUZZLE_HEIGHT);
+console.log(`[${x} , ${y}]`);
+
+const b1G = new THREE.BoxGeometry( 0.1, 0.05, 0 );
+const b1M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'orange' )} );
+const b1 = new THREE.Mesh( b1G, b1M );
+b1.position.setX(x);
+b1.position.setY(y);
+b1.position.setZ(insidBoxCube.position.z + 1);
+scene.add( b1 );
+
+
+const b3G = new THREE.BoxGeometry( 0.1, 0.05, 0 );
+const b3M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'red' )} );
+const b3 = new THREE.Mesh( b3G, b3M );
+b3.position.setX(0);
+b3.position.setY(0);
+b3.position.setZ(insidBoxCube.position.z + 1);
+scene.add( b3 );
+
+const b2G = new THREE.BoxGeometry( 0.1, 0.05, 0 );
+const b2M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'red' )} );
+const b2 = new THREE.Mesh( b2G, b2M );
+b2.position.setX(0.85);
+b2.position.setY(0.45);
+b2.position.setZ(insidBoxCube.position.z + 1);
+scene.add( b2 );
+
+
+
+//var square1 = new Square([-1, 0.625, 0], [-1, 0.63, 0], [-1.03, 0.625, 0], [-1.03, 0.63, 0], new THREE.Color( 'purple' ));
+//square1.render();
+
+console.log( insidBoxCube );
+//console.log( b1G );
+
 
 
 // Initiates graphical loops
