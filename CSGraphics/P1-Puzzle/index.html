@@ -4,7 +4,7 @@
 </head>
 <body>
 
-<canvas id="myCanvas" width="800" height="600"></canvas>
+<canvas id="myCanvas"></canvas>
 
 <script type="module">
 
@@ -27,7 +27,8 @@ var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
 //renderer.setClearColor( 0xffffff, 1 );
 renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
 // If you want this to span the window, instead of using the myCanvas object, use the window object
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight);
 
 // Objects & Functions
 
@@ -88,6 +89,14 @@ function getRandomArbitrary(min, max) {
   return Math.random() * (max - min) + min;
 }
 
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 // Represents a point in the puzzle box
 class point2D {
 
@@ -113,14 +122,14 @@ class Piece {
 
 // Initilizing Objects
 
-const PUZZLE_WIDTH = 2;
-const PUZZLE_HEIGHT = 1.25;
+const PUZZLE_WIDTH = 1;
+const PUZZLE_HEIGHT = 1;
 const NUMBER_OF_PIECES = 6;
 const X_LEVEL = 0;
 const Y_LEVEL = 0;
 
 // Creating black outline box for puzzle
-const geometry = new THREE.BoxGeometry( PUZZLE_WIDTH + 0.045, PUZZLE_HEIGHT + 0.025, 0 );
+const geometry = new THREE.BoxGeometry( PUZZLE_WIDTH + 0.025, PUZZLE_HEIGHT + 0.025, 0 );
 const material = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'black' )} );
 const cube = new THREE.Mesh( geometry, material );
 cube.position.setX(X_LEVEL);
@@ -164,44 +173,110 @@ for(var i = 0; i < NUMBER_OF_PIECES + 1; i++) {
 
 }
 
-var x = getRandomArbitrary(-1 * PUZZLE_WIDTH, PUZZLE_WIDTH);
-var y = getRandomArbitrary(-1 * PUZZLE_HEIGHT, PUZZLE_HEIGHT);
+// Defining the center point of the puzzle
+var x = getRandomArbitrary(-0.25 * PUZZLE_WIDTH, 0.25 * PUZZLE_WIDTH);
+var y = getRandomArbitrary(-0.25 * PUZZLE_HEIGHT, 0.25 * PUZZLE_HEIGHT);
+const center = new point2D(x, y);
 console.log(`[${x} , ${y}]`);
 
-const b1G = new THREE.BoxGeometry( 0.1, 0.05, 0 );
+const b1G = new THREE.BoxGeometry( 0.01, 0.01, 0 );
 const b1M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'orange' )} );
 const b1 = new THREE.Mesh( b1G, b1M );
 b1.position.setX(x);
 b1.position.setY(y);
-b1.position.setZ(insidBoxCube.position.z + 1);
+b1.position.setZ(insidBoxCube.position.z + .01);
 scene.add( b1 );
 
 
-const b3G = new THREE.BoxGeometry( 0.1, 0.05, 0 );
+const b3G = new THREE.BoxGeometry( 0.01, 0.01, 0 );
 const b3M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'red' )} );
 const b3 = new THREE.Mesh( b3G, b3M );
 b3.position.setX(0);
 b3.position.setY(0);
-b3.position.setZ(insidBoxCube.position.z + 1);
+b3.position.setZ(insidBoxCube.position.z + .01);
 scene.add( b3 );
 
-const b2G = new THREE.BoxGeometry( 0.1, 0.05, 0 );
+const b2G = new THREE.BoxGeometry( 0.1, 0.1, 0 );
 const b2M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'red' )} );
 const b2 = new THREE.Mesh( b2G, b2M );
-b2.position.setX(0.85);
-b2.position.setY(0.45);
-b2.position.setZ(insidBoxCube.position.z + 1);
+b2.position.setX(0.5);
+b2.position.setY(0.5);
+b2.position.setZ(insidBoxCube.position.z + .01);
 scene.add( b2 );
 
 
-
-//var square1 = new Square([-1, 0.625, 0], [-1, 0.63, 0], [-1.03, 0.625, 0], [-1.03, 0.63, 0], new THREE.Color( 'purple' ));
-//square1.render();
-
 console.log( insidBoxCube );
-//console.log( b1G );
 
 
+
+
+
+
+var vertexs_drawn = 0;
+var vertexs = new Array(NUMBER_OF_PIECES);
+var pos = 0;
+
+const W2 = PUZZLE_WIDTH/2;
+const H2 = PUZZLE_HEIGHT/2;
+
+// Top 
+var num_top = getRandomArbitraryInt(1, Math.ceil((NUMBER_OF_PIECES / 3)));
+// Add in all of the vertexs for top
+for(var i = 0; i < num_top; i++) {
+  vertexs[pos++] = new point2D(getRandomArbitrary(-W2, W2), H2);
+}
+
+// Right
+var num_right = getRandomArbitraryInt(1, Math.ceil((NUMBER_OF_PIECES / 3)));
+// Add in all of the vertexs for right
+for(var i = 0; i < num_right; i++) {
+  vertexs[pos++] = new point2D(W2, getRandomArbitrary(-H2, H2));
+}
+
+// Bottom
+var num_bottom = getRandomArbitraryInt(1, Math.ceil((NUMBER_OF_PIECES / 3)));
+// Add in all of the vertexs for bottom
+for(var i = 0; i < num_bottom; i++) {
+  vertexs[pos++] = new point2D(getRandomArbitrary(-W2, W2), -H2);
+}
+
+// Left
+var num_left = NUMBER_OF_PIECES - (num_top + num_right + num_bottom);
+// Add in all of the vertexs for left
+for(var i = 0; i < num_left; i++) {
+  vertexs[pos++] = new point2D(-W2, getRandomArbitrary(-H2, H2));
+}
+
+console.log(`${num_top}  ${num_right}  ${num_bottom}  ${num_left}`);
+console.log(vertexs);
+
+// Draw out all of the triangles based on the vertexes
+var v = vertexs[0];
+for(var i = 1; i < vertexs.length; i++) {
+    var point = vertexs[i];
+    var triangleG = new THREE.Triangle(
+      new THREE.Vector3(center.x, center.y, 0), 
+      new THREE.Vector3(v.x, v.y, 0), 
+      new THREE.Vector3(point.x, point.y, 0));
+    var normal = triangleG.getNormal();
+
+    var triG = new THREE.Geometry();
+    triG.vertices.push(triangleG.a);
+    triG.vertices.push(triangleG.b);
+    triG.vertices.push(triangleG.c);
+    triG.faces.push(new THREE.Face3(0, 1, 2, normal));
+
+    var color = new THREE.Color();
+    color.setHex(Math.random() * 0xffffff);
+
+    var mat = new THREE.MeshBasicMaterial( {color: color} );
+    var mesh = new THREE.Mesh(triG, mat);
+    scene.add(mesh);   
+
+    // Assign the last vertex to this point.
+    v = point;
+
+}
 
 // Initiates graphical loops
 animate();
