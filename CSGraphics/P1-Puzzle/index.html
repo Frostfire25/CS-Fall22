@@ -12,6 +12,7 @@
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
+import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
 
 // Creating Scene and Camera
 var scene = new THREE.Scene();
@@ -31,58 +32,6 @@ renderer.setPixelRatio(window.devicePixelRatio * 1.01);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 // Objects & Functions
-
-// Create the object to represent a triangle
-function Triangle (a, b, c, color) {
-
-this.vertices = [
-  a[0], a[1], a[2],
-  b[0], b[1], b[2],
-  c[0], c[1], c[2]
-];
-
-this.color = color;
-
-// The function that actually adds the triangle geometry to the scene
-this.render = function() {
-  // Create and assign the geometry
-  this.geom = new THREE.BufferGeometry();  
-  
-  // Assign attributes to geometry
-  this.geom.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array(this.vertices), 3));
-  this.geom.setAttribute( 'color' , this.color);
-
-  this.material = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
-  this.mesh = new THREE.Mesh( this.geom, this.material );
-
-  scene.add(this.mesh);
- }	
-}
-
-function Square(a, b, c, d, color) {
-
-this.vertices = [
-  a[0], a[1], a[2],
-  b[0], b[1], b[2],
-  c[0], c[1], c[2],
-  d[0], d[1], d[2]
-];
-
-this.color = color;
-
- // The function that actually adds the triangle geometry to the scene
- this.render = function() {
-    this.lowerTri = new Triangle(a, b, c, this.color);
-    this.upperTri = new Triangle(a, c, d, this.color);
-
-    this.lowerTri.render();
-    this.upperTri.render();
-}	
-
-}
-
-
-
 // Gets a random number
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
 function getRandomArbitrary(min, max) {
@@ -111,11 +60,12 @@ class point2D {
 
 }
 
-class Piece {
+class puzzle_piece {
 
-  constructor(points, color) {
+  constructor(points, color, mesh) {
     this.points = points;
     this.color = color;
+    this.mesh = mesh;
   }  
 
 }
@@ -124,7 +74,7 @@ class Piece {
 
 const PUZZLE_WIDTH = 1;
 const PUZZLE_HEIGHT = 1;
-const NUMBER_OF_PIECES = 6;
+const NUMBER_OF_PIECES = 8;
 const X_LEVEL = 0;
 const Y_LEVEL = 0;
 
@@ -144,139 +94,142 @@ insidBoxCube.position.setX(X_LEVEL);
 insidBoxCube.position.setY(Y_LEVEL);
 scene.add( insidBoxCube );
 
-// Draw # of Pieces (NUMBER_OF_PIECES)
-
-var prior_point = null;
-for(var i = 0; i < NUMBER_OF_PIECES + 1; i++) {
-   
-    
-    // Get random values for this point.
-    var x = getRandomArbitrary(0, PUZZLE_WIDTH);
-    var y = getRandomArbitrary(0, PUZZLE_HEIGHT);
-
-    // Creates a random point
-    var point = new point2D(x, y);      
-
-    // Draw Shape
-    if(prior_point != null) {
-      
-      // Creates a random color
-      var color = new THREE.Color();
-      color.setHex(Math.random() * 0xffffff);
-      
-
-
-    } 
-
-    prior_point = point;
-    
-
-}
-
 // Defining the center point of the puzzle
 var x = getRandomArbitrary(-0.25 * PUZZLE_WIDTH, 0.25 * PUZZLE_WIDTH);
 var y = getRandomArbitrary(-0.25 * PUZZLE_HEIGHT, 0.25 * PUZZLE_HEIGHT);
 const center = new point2D(x, y);
 console.log(`[${x} , ${y}]`);
 
-const b1G = new THREE.BoxGeometry( 0.01, 0.01, 0 );
-const b1M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'orange' )} );
-const b1 = new THREE.Mesh( b1G, b1M );
-b1.position.setX(x);
-b1.position.setY(y);
-b1.position.setZ(insidBoxCube.position.z + .01);
-scene.add( b1 );
 
 
-const b3G = new THREE.BoxGeometry( 0.01, 0.01, 0 );
-const b3M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'red' )} );
-const b3 = new THREE.Mesh( b3G, b3M );
-b3.position.setX(0);
-b3.position.setY(0);
-b3.position.setZ(insidBoxCube.position.z + .01);
-scene.add( b3 );
-
-const b2G = new THREE.BoxGeometry( 0.1, 0.1, 0 );
-const b2M = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'red' )} );
-const b2 = new THREE.Mesh( b2G, b2M );
-b2.position.setX(0.5);
-b2.position.setY(0.5);
-b2.position.setZ(insidBoxCube.position.z + .01);
-scene.add( b2 );
-
-
-console.log( insidBoxCube );
-
-
-
-
-
-
-var vertexs_drawn = 0;
-var vertexs = new Array(NUMBER_OF_PIECES);
+var puzzle_pieces = new Array(NUMBER_OF_PIECES);
 var pos = 0;
 
 const W2 = PUZZLE_WIDTH/2;
 const H2 = PUZZLE_HEIGHT/2;
 
-// Top 
-var num_top = getRandomArbitraryInt(1, Math.ceil((NUMBER_OF_PIECES / 3)));
-// Add in all of the vertexs for top
-for(var i = 0; i < num_top; i++) {
-  vertexs[pos++] = new point2D(getRandomArbitrary(-W2, W2), H2);
-}
-
-// Right
-var num_right = getRandomArbitraryInt(1, Math.ceil((NUMBER_OF_PIECES / 3)));
-// Add in all of the vertexs for right
-for(var i = 0; i < num_right; i++) {
-  vertexs[pos++] = new point2D(W2, getRandomArbitrary(-H2, H2));
-}
-
-// Bottom
-var num_bottom = getRandomArbitraryInt(1, Math.ceil((NUMBER_OF_PIECES / 3)));
-// Add in all of the vertexs for bottom
-for(var i = 0; i < num_bottom; i++) {
-  vertexs[pos++] = new point2D(getRandomArbitrary(-W2, W2), -H2);
-}
-
-// Left
-var num_left = NUMBER_OF_PIECES - (num_top + num_right + num_bottom);
-// Add in all of the vertexs for left
-for(var i = 0; i < num_left; i++) {
-  vertexs[pos++] = new point2D(-W2, getRandomArbitrary(-H2, H2));
-}
-
-console.log(`${num_top}  ${num_right}  ${num_bottom}  ${num_left}`);
-console.log(vertexs);
-
-// Draw out all of the triangles based on the vertexes
-var v = vertexs[0];
-for(var i = 1; i < vertexs.length; i++) {
-    var point = vertexs[i];
-    var triangleG = new THREE.Triangle(
-      new THREE.Vector3(center.x, center.y, 0), 
-      new THREE.Vector3(v.x, v.y, 0), 
-      new THREE.Vector3(point.x, point.y, 0));
-    var normal = triangleG.getNormal();
-
+// Draws a triangle based off of the points.
+function drawTriangle(v, point, center) {
     var triG = new THREE.Geometry();
-    triG.vertices.push(triangleG.a);
-    triG.vertices.push(triangleG.b);
-    triG.vertices.push(triangleG.c);
-    triG.faces.push(new THREE.Face3(0, 1, 2, normal));
+    triG.vertices.push(new THREE.Vector3(center.x, center.y, 0));
+    triG.vertices.push(new THREE.Vector3(point.x, point.y, 0));
+    triG.vertices.push(new THREE.Vector3(v.x, v.y, 0));
+    triG.faces.push(new THREE.Face3(0, 1, 2, new THREE.Vector3(0, 0, 1)));
 
     var color = new THREE.Color();
     color.setHex(Math.random() * 0xffffff);
 
-    var mat = new THREE.MeshBasicMaterial( {color: color} );
+    var mat = new THREE.MeshBasicMaterial( {color: color, side: THREE.DoubleSide} );
     var mesh = new THREE.Mesh(triG, mat);
-    scene.add(mesh);   
+    scene.add(mesh);
 
-    // Assign the last vertex to this point.
-    v = point;
+    // Create piece object for storing data
+    var piece = new puzzle_piece([v, point, center], color, mesh);
+    puzzle_pieces[pos++] = piece;
 
+    return piece;
 }
+
+// Top 
+var num_top = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
+console.log("Num top "+ num_top);
+var vertexes_top = new Array(num_top);
+// Add in all of the vertexs for top
+for(var i = 0; i < num_top; i++) {
+  vertexes_top[i] = new point2D(getRandomArbitrary(-W2, W2), H2);
+}
+// Sort the vertexes
+vertexes_top.sort(function(a, b) { return a - b; });
+// Add in all of the top triangles
+var prev_top = undefined;
+for(var i = 0; i < num_top; i++) {
+  var vertex = vertexes_top[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(new point2D(-W2, H2), vertex, center)} 
+  // If this is the last run
+  else if(i == (num_top - 1)) { drawTriangle(new point2D(W2, H2), prev_top, center);}
+  // If this is a middle run
+  else { drawTriangle(vertex, prev_top, center); }
+  prev_top = vertex; 
+}
+
+
+// Right
+var num_right = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
+console.log("Num right "+ num_right);
+var vertexes_right = new Array(num_right);
+for(var i = 0; i < num_right; i++) {
+  vertexes_right[pos++] = new point2D(W2, getRandomArbitrary(-H2, H2));
+}
+// Sort the vertexes
+vertexes_right.sort(function(a, b) { return a - b; });
+// Add in all of the right triangles
+var prev_right = undefined;
+for(var i = 0; i < num_right; i++) {
+  var vertex = vertexes_right[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(new point2D(W2, H2), vertex, center);} 
+  // If this is the last run
+  else if(i == (num_right - 1)) { drawTriangle(new point2D(W2, -H2), prev_right, center);}
+  // If this is a middle run
+  else { drawTriangle(vertex, prev_right, center); }
+  prev_right = vertex; 
+}
+
+
+
+// Bottom
+var num_bottom = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
+console.log("Num bottom "+ num_bottom);
+var vertexes_bottom = new Array(num_bottom);
+// Add in all of the vertexs for bottom
+for(var i = 0; i < num_bottom; i++) {
+  vertexes_bottom[pos++] = new point2D(getRandomArbitrary(-W2, W2), -H2);
+}
+// Sort the vertexes
+vertexes_bottom.sort(function(a, b) { return a - b; });
+// Add in all of the bottom triangles
+var prev_bottom = undefined;
+for(var i = 0; i < num_bottom; i++) {
+  var vertex = vertexes_bottom[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(new point2D(W2, -H2), vertex, center);} 
+  // If this is the last run
+  else if(i == (num_bottom - 1)) { drawTriangle(new point2D(-W2, -H2), prev_bottom, center);}
+  // If this is a middle run
+  else { drawTriangle(vertex, prev_bottom, center); }
+  prev_bottom = vertex; 
+}
+
+// Left
+var num_left = Math.max(2, NUMBER_OF_PIECES - (num_top + num_right + num_bottom));
+console.log("Num left "+ num_left);
+var vertexes_left = new Array(num_left);
+// Add in all of the vertexs for left
+for(var i = 0; i < num_left; i++) {
+  vertexes_left[pos++] = new point2D(-W2, getRandomArbitrary(-H2, H2));
+}
+// Sort the vertexes
+vertexes_left.sort(function(a, b) { return a - b; });
+// Add in all of the left triangles
+var prev_left = undefined;
+for(var i = 0; i < num_left; i++) {
+  var vertex = vertexes_left[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center);} 
+  // If this is the last run
+  else if(i == (num_left - 1)) { drawTriangle(new point2D(-W2, H2), prev_left, center);}
+  // If this is a middle run
+  else { drawTriangle(vertex, prev_left, center); }
+  prev_left = vertex; 
+}
+
+//console.log(`${num_top}  ${num_right}  ${num_bottom}  ${num_left}`);
+//console.log(vertexs);
+
+// Make all pieces draggable
+console.log(puzzle_pieces.length);
+var controls = new DragControls( puzzle_pieces.map(function(n) { return n.mesh; }), camera, renderer.domElement );
 
 // Initiates graphical loops
 animate();
