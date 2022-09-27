@@ -234,8 +234,8 @@ for(var i = 0; i < num_left; i++) {
 
 // Make all pieces draggable
 var draggleObj = [];
-puzzle_piece_unlocked.forEach( n => {
-  draggleObj.push(n);
+puzzle_pieces.forEach( n => {
+  draggleObj.push(n.mesh);
 });
 var controls = new DragControls( draggleObj, camera, renderer.domElement );
 //controls.addEventListener( 'dragstart', dragStart );
@@ -255,23 +255,23 @@ function drag(event) {
   if(inside) {
       console.log(true);
 
-      const draggableObjects = controls.getObjects();
-      draggableObjects.length = 0;
+      //const draggableObjects = controls.getObjects();
+      //draggableObjects.length = 0;
 
       // Assign the piece to inplace so it will not move anymore.
       //console.log(piece.mesh.id);
       //console.log(puzzle_piece_unlocked.map( function(m) { return m.id; }));
-      puzzle_piece_unlocked = puzzle_piece_unlocked.filter(function(value, index, arr){ 
-        return value.id != piece.mesh.id;
-      });
+      //puzzle_piece_unlocked = puzzle_piece_unlocked.filter(function(value, index, arr){ 
+      //  return value.id != piece.mesh.id;
+      //});
 
-      console.log(draggableObjects);
+      //console.log(draggableObjects);
 
       // Apply all of the objects of puzzle_piece_unlocked back onto draggableObjects
-      puzzle_piece_unlocked.forEach( n => {
-        console.log("pushed " + n.id );
-        draggableObjects.push(n);
-      });
+      //puzzle_piece_unlocked.forEach( n => {
+      //  console.log("pushed " + n.id );
+      //  draggableObjects.push(n);
+      //});
 
       // Assign piece's inPlaced value to true
       piece.inPlace = true;
@@ -279,6 +279,8 @@ function drag(event) {
       // Lock into position HERE
       piece.mesh.position.x = piece.starting_X;
       piece.mesh.position.x = piece.starting_Y;
+
+      lockPuzzlePieces();
   }
 
 }
@@ -294,9 +296,7 @@ function dragEnd(event) {
   // If the piece are not inside the bounding points, then assign its inPlace attribute to true and push it onto draggableObjects.
   if(!inside) {
     piece.inPlace = false;
-    
-    if(!draggleObj.includes(piece.mesh))
-    draggleObj.push(piece.mesh);
+    lockPuzzlePieces();
   }
 
   // Loop through all pieces to see if the puzzle is completed
@@ -310,6 +310,18 @@ function dragEnd(event) {
   if(completed) {
 
   }
+}
+
+// Locks in all the puzzle pieces that should be locked in
+function lockPuzzlePieces() {
+  const draggableObjects = controls.getObjects();
+  draggableObjects.length = 0;
+
+  puzzle_pieces.forEach(piece => {
+    if(!piece.inPlace) {
+      draggableObjects.push(piece.mesh);
+    }
+  })
 }
 
 // Determines if a puzzle piece is within the points that it needs to be
