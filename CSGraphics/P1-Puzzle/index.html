@@ -114,7 +114,7 @@ const W2 = PUZZLE_WIDTH/2;
 const H2 = PUZZLE_HEIGHT/2;
 
 var timesRan = 0;
-var puzzle_piece_meshes = [];
+var puzzle_piece_unlocked = [];
 // Draws a triangle based off of the points.
 function drawTriangle(v, point, center) {
     var triG = new THREE.Geometry();
@@ -133,7 +133,7 @@ function drawTriangle(v, point, center) {
     // Create piece object for storing data
     var piece = new puzzle_piece([v, point, center], color, mesh);
     puzzle_pieces.push(piece);
-    puzzle_piece_meshes.push(mesh);
+    puzzle_piece_unlocked.push(mesh);
 
     timesRan ++;
     return piece;
@@ -233,23 +233,87 @@ for(var i = 0; i < num_left; i++) {
 }
 
 // Make all pieces draggable
-var controls = new DragControls( puzzle_piece_meshes, camera, renderer.domElement );
+var draggleObj = [];
+puzzle_piece_unlocked.forEach( n => {
+  draggleObj.push(n);
+});
+var controls = new DragControls( draggleObj, camera, renderer.domElement );
 //controls.addEventListener( 'dragstart', dragStart );
-//controls.addEventListener( 'dragend', dragEnd );
+controls.addEventListener( 'dragend', dragEnd );
 controls.addEventListener( 'drag', drag );
 
 // In our drag function we want to determine if a person moved a piece into its correct position, if they did then we want to set its to locked.
 function drag(event) {
   // Find the puzzle piece we are on.
   //console.log(puzzle_pieces.find(piece => piece.mesh.id == event.object.id));
-  console.log(isWithinPoints(puzzle_pieces.find(piece => piece.mesh.id == event.object.id), event.object));
+  var piece = puzzle_pieces.find(piece => piece.mesh.id == event.object.id);
+  // If the piece wasn't found.
+  if(piece == null || piece == undefined) { console.log("Undefined piece found when moving"); return; }
+
+  var inside = isWithinPoints(piece, event.object);
+
+  if(inside) {
+      console.log(true);
+
+      const draggableObjects = controls.getObjects();
+      draggableObjects.length = 0;
+
+      // Assign the piece to inplace so it will not move anymore.
+      //console.log(piece.mesh.id);
+      //console.log(puzzle_piece_unlocked.map( function(m) { return m.id; }));
+      puzzle_piece_unlocked = puzzle_piece_unlocked.filter(function(value, index, arr){ 
+        return value.id != piece.mesh.id;
+      });
+
+      console.log(draggableObjects);
+
+      // Apply all of the objects of puzzle_piece_unlocked back onto draggableObjects
+      puzzle_piece_unlocked.forEach( n => {
+        console.log("pushed " + n.id );
+        draggableObjects.push(n);
+      });
+
+      // Assign piece's inPlaced value to true
+      piece.inPlace = true;
+
+      // Lock into position HERE
+      piece.mesh.position.x = piece.starting_X;
+      piece.mesh.position.x = piece.starting_Y;
+  }
+
+}
+
+function dragEnd(event) {
+  // We have this here because if a piece ends up in a place that is not the locked position, we want to add it back to draggable objects
+  var piece = puzzle_pieces.find(piece => piece.mesh.id == event.object.id);
+  // If the piece wasn't found.
+  if(piece == null || piece == undefined) { console.log("Undefined piece found when moving"); return; }
+
+  var inside = isWithinPoints(piece, event.object);
+
+  // If the piece are not inside the bounding points, then assign its inPlace attribute to true and push it onto draggableObjects.
+  if(!inside) {
+    piece.inPlace = false;
+    
+    if(!draggleObj.includes(piece.mesh))
+    draggleObj.push(piece.mesh);
+  }
+
+  // Loop through all pieces to see if the puzzle is completed
+  var completed = true;
+  for(piece of puzzle_pieces) {
+    if(piece.inPlace == false)
+      completed = false;
+  }
+
+  // Puzzle has been completed
+  if(completed) {
+
+  }
 }
 
 // Determines if a puzzle piece is within the points that it needs to be
 function isWithinPoints(puzzle_piece, object) {
-
-  console.log("x: " + Math.abs(puzzle_piece.starting_X - object.position.x));
-  console.log("y: " + Math.abs(puzzle_piece.starting_Y - object.position.y));
 
   if(Math.abs(puzzle_piece.starting_X - object.position.x) > SNAP_BOUNDS ||
       Math.abs(puzzle_piece.starting_Y - object.position.y) > SNAP_BOUNDS)
