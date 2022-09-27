@@ -12,3 +12,30 @@ C(n) = (# of calls made for 1 call) + (number of recursive calls)*(number of cal
 C(n) = 1 + 1*C(n-1)
 
 2^k * C(n-k) + k
+
+Challenge Problem: Solving Recurrences
+• What is the closed form of the recurrence T (n) = T (n − 1) + n where T (0) = 1? What is its running
+time?
+
+T(n) = T(n-1) + n
+T(n) = T(n-k) + n
+T(0) = 1 = T(n) + n
+
+O(n) running time.
+
+• What is the closed form of the recurrence T (n) = 3 * T (n/2) + 2? What is its running time?
+
+Master Method
+a = 3
+b = 2
+d = 0
+f(n) = 2
+
+T(n) = O(n^log(2,3)) = O(n)
+
+
+• What is the running time of the recurrence T (n) = 3 * T (n/2) + (n/2)
+
+a = 3
+b = 2
+d = 

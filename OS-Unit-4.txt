@@ -1,0 +1,58 @@
+Threads.
+
+Threads allow programs to run multiple tasks at the same time.
+A thread is a basic unit of CPU utilization it comprises of:
+	- A thread ID.
+	- A program counter
+	- A register set
+	- A stack of tasks.
+
+Benefits of Threading.
+	- Responsiveness - May allow continued execution if part of process is blocked, especially importent for user interfaces.
+	- Resource Sharing - Threads share resources of process, easier than shared memory or message passing.
+	- Economy - Cheaper than process creation, thread switching lower overhead than context switching.
+	- Scalability - Process can take advantage of multiprocessor architectures
+
+Single vs Multi-Threaded Applications. 
+
+Multi-Threaded Applications Challenges (From a Developer Standpoint):
+	- Dividing Activities
+	- Balance
+	- Data splitting
+	- Data dependency
+	- Testing and Debugging
+
+Parallelism - implies a system can peform more than one task simultaneously
+	- Data Parallelism - distrubutes subsets of the same sata across multiple cores, operates the same operation on each set.
+	- Task parallelism - distrubutes threads accross cores, each thread performing unqiue operations. 
+CPU's have hardware threads Ex. (4 cores, 8 threads)
+
+Amdahl's Law - Identifies performance gains from adding additional cores to an application that has both serial and parallel components.
+S is serial portion
+N is processing cores
+
+speedup <= 1/(S + ((1-S) / N))
+
+If an application is 75% parallel / 25% serial, moving from 1 -> 2 cores results in a speedup of 1.6x.
+
+User & Kener threads
+	Many to One (User threads to Kernel Threads)	
+		- Many user level threads mapped to one kernel level thread.
+	One to One (User threads to Kernel Threads) BEST! and most commonly used.
+		- Each user level thread maps to one kernel thread
+		- Examples, windows, linux, solaris
+	Many to Many (User threads to Kernel threads)
+		- Allows many user level threads to be mapped to many kernel threads.
+		- Allows the OS to create a sufficient number of kener threads
+	Two-level model
+		- Many to many and allows users to thread to be bound to kernel threads
+
+Thread Libraries
+	- Thread libraries provides a programmer with an API for creating and managing threads.
+		- Either done in user or kernel space.
+
+Pthreads (Process threads)
+	- Many be provided at user-level or kernel-level
+	- API specifies behavior of the thread library, implementation is up to development of the library.
+	#include <pthread.h>
+	

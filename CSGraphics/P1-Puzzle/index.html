@@ -108,6 +108,7 @@ var pos = 0;
 const W2 = PUZZLE_WIDTH/2;
 const H2 = PUZZLE_HEIGHT/2;
 
+var puzzle_piece_meshes = [];
 // Draws a triangle based off of the points.
 function drawTriangle(v, point, center) {
     var triG = new THREE.Geometry();
@@ -126,6 +127,7 @@ function drawTriangle(v, point, center) {
     // Create piece object for storing data
     var piece = new puzzle_piece([v, point, center], color, mesh);
     puzzle_pieces[pos++] = piece;
+    puzzle_piece_meshes.push(mesh);
 
     return piece;
 }
@@ -229,7 +231,7 @@ for(var i = 0; i < num_left; i++) {
 
 // Make all pieces draggable
 console.log(puzzle_pieces.length);
-var controls = new DragControls( puzzle_pieces.map(function(n) { return n.mesh; }), camera, renderer.domElement );
+var controls = new DragControls( puzzle_piece_meshes, camera, renderer.domElement );
 
 // Initiates graphical loops
 animate();
