@@ -74,7 +74,7 @@ class puzzle_piece {
 
 const PUZZLE_WIDTH = 1;
 const PUZZLE_HEIGHT = 1;
-const NUMBER_OF_PIECES = 8;
+const NUMBER_OF_PIECES = 15;
 const X_LEVEL = 0;
 const Y_LEVEL = 0;
 
@@ -102,12 +102,12 @@ console.log(`[${x} , ${y}]`);
 
 
 
-var puzzle_pieces = new Array(NUMBER_OF_PIECES);
-var pos = 0;
+var puzzle_pieces = [];
 
 const W2 = PUZZLE_WIDTH/2;
 const H2 = PUZZLE_HEIGHT/2;
 
+var timesRan = 0;
 var puzzle_piece_meshes = [];
 // Draws a triangle based off of the points.
 function drawTriangle(v, point, center) {
@@ -126,11 +126,13 @@ function drawTriangle(v, point, center) {
 
     // Create piece object for storing data
     var piece = new puzzle_piece([v, point, center], color, mesh);
-    puzzle_pieces[pos++] = piece;
+    puzzle_pieces.push(piece);
     puzzle_piece_meshes.push(mesh);
 
+    timesRan ++;
     return piece;
 }
+
 
 // Top 
 var num_top = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
@@ -141,38 +143,37 @@ for(var i = 0; i < num_top; i++) {
   vertexes_top[i] = new point2D(getRandomArbitrary(-W2, W2), H2);
 }
 // Sort the vertexes
-vertexes_top.sort(function(a, b) { return a - b; });
+vertexes_top = vertexes_top.sort(function(a, b) { return a.x - b.x; });
 // Add in all of the top triangles
 var prev_top = undefined;
 for(var i = 0; i < num_top; i++) {
   var vertex = vertexes_top[i];
   // If this is the first run
-  if(i == 0) { drawTriangle(new point2D(-W2, H2), vertex, center)} 
+  if(i == 0) { drawTriangle(center, vertex, new point2D(-W2, H2))} 
   // If this is the last run
-  else if(i == (num_top - 1)) { drawTriangle(new point2D(W2, H2), prev_top, center);}
+  else if(i == (num_top - 1)) { drawTriangle(center, new point2D(W2, H2), prev_top);}
   // If this is a middle run
-  else { drawTriangle(vertex, prev_top, center); }
+  else { drawTriangle(center, vertex, prev_top); }
   prev_top = vertex; 
 }
 
 
 // Right
 var num_right = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
-console.log("Num right "+ num_right);
 var vertexes_right = new Array(num_right);
 for(var i = 0; i < num_right; i++) {
-  vertexes_right[pos++] = new point2D(W2, getRandomArbitrary(-H2, H2));
+  vertexes_right[i] = new point2D(W2, getRandomArbitrary(-H2, H2));
 }
 // Sort the vertexes
-vertexes_right.sort(function(a, b) { return a - b; });
+vertexes_right.sort(function(a, b) { return a.y - b.y; });
 // Add in all of the right triangles
 var prev_right = undefined;
 for(var i = 0; i < num_right; i++) {
   var vertex = vertexes_right[i];
   // If this is the first run
-  if(i == 0) { drawTriangle(new point2D(W2, H2), vertex, center);} 
+  if(i == 0) { drawTriangle(center, vertex, new point2D(W2, -H2));} 
   // If this is the last run
-  else if(i == (num_right - 1)) { drawTriangle(new point2D(W2, -H2), prev_right, center);}
+  else if(i == (num_right - 1)) { drawTriangle(center, prev_right, new point2D(W2, H2));}
   // If this is a middle run
   else { drawTriangle(vertex, prev_right, center); }
   prev_right = vertex; 
@@ -186,18 +187,18 @@ console.log("Num bottom "+ num_bottom);
 var vertexes_bottom = new Array(num_bottom);
 // Add in all of the vertexs for bottom
 for(var i = 0; i < num_bottom; i++) {
-  vertexes_bottom[pos++] = new point2D(getRandomArbitrary(-W2, W2), -H2);
+  vertexes_bottom[i] = new point2D(getRandomArbitrary(-W2, W2), -H2);
 }
 // Sort the vertexes
-vertexes_bottom.sort(function(a, b) { return a - b; });
+vertexes_bottom.sort(function(a, b) { return a.x - b.x; });
 // Add in all of the bottom triangles
 var prev_bottom = undefined;
 for(var i = 0; i < num_bottom; i++) {
   var vertex = vertexes_bottom[i];
   // If this is the first run
-  if(i == 0) { drawTriangle(new point2D(W2, -H2), vertex, center);} 
+  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center);} 
   // If this is the last run
-  else if(i == (num_bottom - 1)) { drawTriangle(new point2D(-W2, -H2), prev_bottom, center);}
+  else if(i == (num_bottom - 1)) { drawTriangle(new point2D(W2, -H2), prev_bottom, center);}
   // If this is a middle run
   else { drawTriangle(vertex, prev_bottom, center); }
   prev_bottom = vertex; 
@@ -209,10 +210,10 @@ console.log("Num left "+ num_left);
 var vertexes_left = new Array(num_left);
 // Add in all of the vertexs for left
 for(var i = 0; i < num_left; i++) {
-  vertexes_left[pos++] = new point2D(-W2, getRandomArbitrary(-H2, H2));
+  vertexes_left[i] = new point2D(-W2, getRandomArbitrary(-H2, H2));
 }
 // Sort the vertexes
-vertexes_left.sort(function(a, b) { return a - b; });
+vertexes_left.sort(function(a, b) { return a.y - b.y; });
 // Add in all of the left triangles
 var prev_left = undefined;
 for(var i = 0; i < num_left; i++) {
@@ -227,11 +228,22 @@ for(var i = 0; i < num_left; i++) {
 }
 
 //console.log(`${num_top}  ${num_right}  ${num_bottom}  ${num_left}`);
-//console.log(vertexs);
 
 // Make all pieces draggable
-console.log(puzzle_pieces.length);
+
 var controls = new DragControls( puzzle_piece_meshes, camera, renderer.domElement );
+controls.addEventListener( 'dragstart', dragStart );
+controls.addEventListener( 'dragend', dragEnd );
+
+// Mouse listener for the drag controls 
+function dragStart(event) {
+
+}
+
+function dragEnd(event) {
+
+}
+
 
 // Initiates graphical loops
 animate();
