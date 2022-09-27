@@ -29,7 +29,7 @@ var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
 renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
 // If you want this to span the window, instead of using the myCanvas object, use the window object
 renderer.setPixelRatio(window.devicePixelRatio * 1.01);
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.innerWidth, window.innerHeight * 1);
 
 // Objects & Functions
 // Gets a random number
@@ -62,10 +62,11 @@ class point2D {
 
 class puzzle_piece {
 
-  constructor(points, color, mesh) {
+  constructor(points, color, mesh, bounding_box) {
     this.points = points;
     this.color = color;
     this.mesh = mesh;
+    this.bounding_box = bounding_box;
     this.starting_X = mesh.position.x.valueOf();
     this.starting_Y = mesh.position.y.valueOf();
     // Attribute that determines if this puzzle piece is in place
@@ -76,8 +77,8 @@ class puzzle_piece {
 
 // Initilizing Objects
 
-const PUZZLE_WIDTH = 1;
-const PUZZLE_HEIGHT = 1;
+const PUZZLE_WIDTH = 0.5;
+const PUZZLE_HEIGHT = 0.5;
 const NUMBER_OF_PIECES = 9;
 const X_LEVEL = 0;
 const Y_LEVEL = 0;
@@ -91,6 +92,10 @@ const cube = new THREE.Mesh( geometry, material );
 cube.position.setX(X_LEVEL);
 cube.position.setY(Y_LEVEL);
 scene.add( cube );
+
+// Creating a bounding box for the outline
+var outlineBoundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+outlineBoundingBox.setFromObject(cube);
 
 // Creating the inside box
 const insideBox = new THREE.BoxGeometry( PUZZLE_WIDTH, PUZZLE_HEIGHT, 0 );
@@ -130,8 +135,11 @@ function drawTriangle(v, point, center) {
     var mesh = new THREE.Mesh(triG, mat);
     scene.add(mesh);
 
+    var pieceBoundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    pieceBoundingBox.setFromObject(mesh);
+
     // Create piece object for storing data
-    var piece = new puzzle_piece([v, point, center], color, mesh);
+    var piece = new puzzle_piece([v, point, center], color, mesh, pieceBoundingBox);
     puzzle_pieces.push(piece);
     puzzle_piece_unlocked.push(mesh);
 
@@ -245,40 +253,20 @@ controls.addEventListener( 'drag', drag );
 // In our drag function we want to determine if a person moved a piece into its correct position, if they did then we want to set its to locked.
 function drag(event) {
   // Find the puzzle piece we are on.
-  //console.log(puzzle_pieces.find(piece => piece.mesh.id == event.object.id));
-  var piece = puzzle_pieces.find(piece => piece.mesh.id == event.object.id);
+  var pieceDrag = puzzle_pieces.find(m => m.mesh.id == event.object.id);
   // If the piece wasn't found.
-  if(piece == null || piece == undefined) { console.log("Undefined piece found when moving"); return; }
+  if(pieceDrag == null || pieceDrag == undefined) { console.log("Undefined piece found when moving"); return; }
 
-  var inside = isWithinPoints(piece, event.object);
+  var inside = isWithinPoints(pieceDrag, event.object);
 
   if(inside) {
-      console.log(true);
-
-      //const draggableObjects = controls.getObjects();
-      //draggableObjects.length = 0;
-
-      // Assign the piece to inplace so it will not move anymore.
-      //console.log(piece.mesh.id);
-      //console.log(puzzle_piece_unlocked.map( function(m) { return m.id; }));
-      //puzzle_piece_unlocked = puzzle_piece_unlocked.filter(function(value, index, arr){ 
-      //  return value.id != piece.mesh.id;
-      //});
-
-      //console.log(draggableObjects);
-
-      // Apply all of the objects of puzzle_piece_unlocked back onto draggableObjects
-      //puzzle_piece_unlocked.forEach( n => {
-      //  console.log("pushed " + n.id );
-      //  draggableObjects.push(n);
-      //});
-
+      
       // Assign piece's inPlaced value to true
-      piece.inPlace = true;
+      pieceDrag.inPlace = true;
 
       // Lock into position HERE
-      piece.mesh.position.x = piece.starting_X;
-      piece.mesh.position.x = piece.starting_Y;
+      pieceDrag.mesh.position.x = pieceDrag.starting_X;
+      pieceDrag.mesh.position.x = pieceDrag.starting_Y;
 
       lockPuzzlePieces();
   }
@@ -287,22 +275,31 @@ function drag(event) {
 
 function dragEnd(event) {
   // We have this here because if a piece ends up in a place that is not the locked position, we want to add it back to draggable objects
-  var piece = puzzle_pieces.find(piece => piece.mesh.id == event.object.id);
-  // If the piece wasn't found.
-  if(piece == null || piece == undefined) { console.log("Undefined piece found when moving"); return; }
+  var pieceDragEnd = puzzle_pieces.find(m => m.mesh.id == event.object.id);
 
-  var inside = isWithinPoints(piece, event.object);
+  console.log(pieceDragEnd.mesh.id + " " + event.object.id);
+  // If the piece wasn't found.
+  if(pieceDragEnd == null || pieceDragEnd == undefined) { console.log("Undefined piece found when moving"); return; }
+
+  var inside = isWithinPoints(pieceDragEnd, event.object);
 
   // If the piece are not inside the bounding points, then assign its inPlace attribute to true and push it onto draggableObjects.
   if(!inside) {
-    piece.inPlace = false;
+    pieceDragEnd.inPlace = false;
     lockPuzzlePieces();
+  } else {
+    // Assign piece's inPlaced value to true
+    pieceDragEnd.inPlace = true;
+
+    // Lock into position HERE
+    pieceDragEnd.mesh.position.x = pieceDragEnd.starting_X;
+    pieceDragEnd.mesh.position.x = pieceDragEnd.starting_Y;
   }
 
   // Loop through all pieces to see if the puzzle is completed
   var completed = true;
-  for(piece of puzzle_pieces) {
-    if(piece.inPlace == false)
+  for(var pieceWin of puzzle_pieces) {
+    if(pieceWin.inPlace == false)
       completed = false;
   }
 
@@ -310,6 +307,10 @@ function dragEnd(event) {
   if(completed) {
 
   }
+
+  //console.log(pieceDragEnd);
+  console.log(pieceDragEnd.bounding_box);
+
 }
 
 // Locks in all the puzzle pieces that should be locked in
@@ -317,9 +318,9 @@ function lockPuzzlePieces() {
   const draggableObjects = controls.getObjects();
   draggableObjects.length = 0;
 
-  puzzle_pieces.forEach(piece => {
-    if(!piece.inPlace) {
-      draggableObjects.push(piece.mesh);
+  puzzle_pieces.forEach(m => {
+    if(!m.inPlace) {
+      draggableObjects.push(m.mesh);
     }
   })
 }
@@ -334,13 +335,68 @@ function isWithinPoints(puzzle_piece, object) {
   return true;
 }
 
+// Coding the random placement around the box on-startup
 
+function placePiecesRandomlyOnBoard() {
 
+  console.log("Outline Bounding Box");
+  console.log(outlineBoundingBox);
+
+  for(var pieceOnBoard of puzzle_pieces) {
+    
+      var randomX = 0;
+      var randomY = 0;
+
+      var good = false;
+      while(!good) {
+        randomX = getRandomArbitrary(-0.70, 0.70);
+        randomY = getRandomArbitrary(-0.70, 0.70);
+
+        if(intersectsBoundingBox(outlineBoundingBox, (outlineBoundingBox.max.x - outlineBoundingBox.min.x), (outlineBoundingBox.max.y - outlineBoundingBox.min.y),
+        pieceOnBoard.bounding_box, (pieceOnBoard.bounding_box.max.x - pieceOnBoard.bounding_box.min.x), (pieceOnBoard.bounding_box.max.y - pieceOnBoard.bounding_box.min.y))) {
+            console.log("Intersects: " + true);
+        } else {
+          console.log("Intersects: " + false);
+        }
+
+        console.log(pieceOnBoard.bounding_box);
+        console.log(outlineBoundingBox);
+
+        good = true;
+      }
+
+      //console.log(`${randomX} ${randomY}`);
+      console.log(pieceOnBoard);
+
+      pieceOnBoard.mesh.position.x = randomX;
+      pieceOnBoard.mesh.position.y = randomY;
+  }
+
+}
+
+// This function determines if two bounding boxes are toutching
+// Used help from https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
+function intersectsBoundingBox(bb1, w1, h1, bb2, w2, h2) {
+
+    if(bb1.min.x < bb2.min.x + w2 &&
+    bb1.min.x + w1 > bb2.min.x &&
+    bb1.min.y < bb2.min.y + h2 &&
+    h1 + bb1.min.y > bb2.min.y) {
+      return true;
+    }
+
+    return false;
+}
 
 // Initiates graphical loops
 animate();
 
 function animate() {
+
+   puzzle_pieces.forEach(m => {
+    m.bounding_box.copy( m.mesh.geometry.boundingBox ).applyMatrix4( m.mesh.matrixWorld );
+   });
+
    requestAnimationFrame(animate);
    render();
 }
@@ -348,6 +404,9 @@ function animate() {
 function render() {
   renderer.render( scene, camera );
 }
+
+// Places the pieces randomly on the board
+placePiecesRandomlyOnBoard();
 
 </script>
 
