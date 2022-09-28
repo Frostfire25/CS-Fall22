@@ -8,6 +8,22 @@
 
 <script type="module">
 
+/**
+ * Notes
+ * 
+ *    Two Extra Features
+ *     - Timer
+ *     - Animation at the end along with reset of game.
+ * 
+ *    Sizes, range of pieces, and snapping bounds can be found at the Initilizing Objects section.
+ *    Object oriented priciples are demonistrated in the puzzle_piece class and puzzle_pieces array. 
+ *    Other OOP can be found with most function call's and animation() design.
+ *    
+ * Current Bugs
+ *   - Very small pieces being generated
+ *   - Pieces with the same shade as the background are being generated making finding them harder than a typical piece
+ */
+
 // Start of Javascript code
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
@@ -62,7 +78,7 @@ class point2D {
 
 class puzzle_piece {
 
-  constructor(points, color, mesh, bounding_box) {
+  constructor(points, color, mesh, bounding_box, escape_direction) {
     this.points = points;
     this.color = color;
     this.mesh = mesh;
@@ -71,19 +87,26 @@ class puzzle_piece {
     this.starting_Y = mesh.position.y.valueOf();
     // Attribute that determines if this puzzle piece is in place
     this.inPlace = false;
+    this.escape_direction = escape_direction;
   }  
 
 }
+
 
 // Initilizing Objects
 
 const PUZZLE_WIDTH = 0.5;
 const PUZZLE_HEIGHT = 0.5;
-const NUMBER_OF_PIECES = 9;
+// range(NUMBER_OF_PIECES, +- 2)
+const NUMBER_OF_PIECES = 8;
 const X_LEVEL = 0;
 const Y_LEVEL = 0;
 // The bounds that a piece must be in to be recognized as set and to snap into place.
 const SNAP_BOUNDS = 0.010;
+
+// Clock object
+var clock = new THREE.Clock(true);
+clock.start();
 
 // Creating black outline box for puzzle
 const geometry = new THREE.BoxGeometry( PUZZLE_WIDTH + 0.025, PUZZLE_HEIGHT + 0.025, 0 );
@@ -112,7 +135,6 @@ const center = new point2D(x, y);
 console.log(`[${x} , ${y}]`);
 
 
-
 var puzzle_pieces = [];
 
 const W2 = PUZZLE_WIDTH/2;
@@ -121,7 +143,7 @@ const H2 = PUZZLE_HEIGHT/2;
 var timesRan = 0;
 var puzzle_piece_unlocked = [];
 // Draws a triangle based off of the points.
-function drawTriangle(v, point, center) {
+function drawTriangle(v, point, center, escape_direction) {
     var triG = new THREE.Geometry();
     triG.vertices.push(new THREE.Vector3(center.x, center.y, 0));
     triG.vertices.push(new THREE.Vector3(point.x, point.y, 0));
@@ -139,7 +161,7 @@ function drawTriangle(v, point, center) {
     pieceBoundingBox.setFromObject(mesh);
 
     // Create piece object for storing data
-    var piece = new puzzle_piece([v, point, center], color, mesh, pieceBoundingBox);
+    var piece = new puzzle_piece([v, point, center], color, mesh, pieceBoundingBox, escape_direction);
     puzzle_pieces.push(piece);
     puzzle_piece_unlocked.push(mesh);
 
@@ -149,8 +171,8 @@ function drawTriangle(v, point, center) {
 
 
 // Top 
+const escape_top = new point2D(0, 1);
 var num_top = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
-console.log("Num top "+ num_top);
 var vertexes_top = new Array(num_top);
 // Add in all of the vertexs for top
 for(var i = 0; i < num_top; i++) {
@@ -163,16 +185,17 @@ var prev_top = undefined;
 for(var i = 0; i < num_top; i++) {
   var vertex = vertexes_top[i];
   // If this is the first run
-  if(i == 0) { drawTriangle(center, vertex, new point2D(-W2, H2))} 
+  if(i == 0) { drawTriangle(center, vertex, new point2D(-W2, H2), escape_top)} 
   // If this is the last run
-  else if(i == (num_top - 1)) { drawTriangle(center, prev_top, new point2D(W2, H2));}
+  else if(i == (num_top - 1)) { drawTriangle(center, prev_top, new point2D(W2, H2), escape_top);}
   // If this is a middle run
-  else { drawTriangle(vertex, prev_top, center); }
+  else { drawTriangle(vertex, prev_top, center, escape_top); }
   prev_top = vertex; 
 }
 
 
 // Right
+const escape_right = new point2D(1, 0);
 var num_right = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
 var vertexes_right = new Array(num_right);
 for(var i = 0; i < num_right; i++) {
@@ -185,18 +208,18 @@ var prev_right = undefined;
 for(var i = 0; i < num_right; i++) {
   var vertex = vertexes_right[i];
   // If this is the first run
-  if(i == 0) { drawTriangle(center, vertex, new point2D(W2, -H2));} 
+  if(i == 0) { drawTriangle(center, vertex, new point2D(W2, -H2), escape_right);} 
   // If this is the last run
-  else if(i == (num_right - 1)) { drawTriangle(center, prev_right, new point2D(W2, H2));}
+  else if(i == (num_right - 1)) { drawTriangle(center, prev_right, new point2D(W2, H2), escape_right);}
   // If this is a middle run
-  else { drawTriangle(center, vertex, prev_right); }
+  else { drawTriangle(center, vertex, prev_right, escape_right); }
   prev_right = vertex; 
 }
 
 
 // Bottom
+const escape_bottom = new point2D(0, -1);
 var num_bottom = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
-console.log("Num bottom "+ num_bottom);
 var vertexes_bottom = new Array(num_bottom);
 // Add in all of the vertexs for bottom
 for(var i = 0; i < num_bottom; i++) {
@@ -209,17 +232,17 @@ var prev_bottom = undefined;
 for(var i = 0; i < num_bottom; i++) {
   var vertex = vertexes_bottom[i];
   // If this is the first run
-  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center);} 
+  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center, escape_bottom);} 
   // If this is the last run
-  else if(i == (num_bottom - 1)) { drawTriangle(new point2D(W2, -H2), prev_bottom, center);}
+  else if(i == (num_bottom - 1)) { drawTriangle(new point2D(W2, -H2), prev_bottom, center, escape_bottom);}
   // If this is a middle run
-  else { drawTriangle(vertex, prev_bottom, center); }
+  else { drawTriangle(vertex, prev_bottom, center, escape_bottom); }
   prev_bottom = vertex; 
 }
 
 // Left
+const escape_left = new point2D(-1, 0);
 var num_left = Math.max(2, NUMBER_OF_PIECES - (num_top + num_right + num_bottom));
-console.log("Num left "+ num_left);
 var vertexes_left = new Array(num_left);
 // Add in all of the vertexs for left
 for(var i = 0; i < num_left; i++) {
@@ -232,11 +255,11 @@ var prev_left = undefined;
 for(var i = 0; i < num_left; i++) {
   var vertex = vertexes_left[i];
   // If this is the first run
-  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center);} 
+  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center, escape_left);} 
   // If this is the last run
-  else if(i == (num_left - 1)) { drawTriangle(new point2D(-W2, H2), prev_left, center);}
+  else if(i == (num_left - 1)) { drawTriangle(new point2D(-W2, H2), prev_left, center, escape_left);}
   // If this is a middle run
-  else { drawTriangle(vertex, prev_left, center); }
+  else { drawTriangle(vertex, prev_left, center, escape_left); }
   prev_left = vertex; 
 }
 
@@ -249,6 +272,7 @@ var controls = new DragControls( draggleObj, camera, renderer.domElement );
 //controls.addEventListener( 'dragstart', dragStart );
 controls.addEventListener( 'dragend', dragEnd );
 controls.addEventListener( 'drag', drag );
+
 
 // In our drag function we want to determine if a person moved a piece into its correct position, if they did then we want to set its to locked.
 function drag(event) {
@@ -277,10 +301,6 @@ function dragEnd(event) {
   // We have this here because if a piece ends up in a place that is not the locked position, we want to add it back to draggable objects
   var pieceDragEnd = puzzle_pieces.find(m => m.mesh.id == event.object.id);
 
-  console.log("POS1");
-  console.log(event.object.position);
-
-  console.log(pieceDragEnd.mesh.id + " " + event.object.id);
   // If the piece wasn't found.
   if(pieceDragEnd == null || pieceDragEnd == undefined) { console.log("Undefined piece found when moving"); return; }
 
@@ -295,8 +315,9 @@ function dragEnd(event) {
     pieceDragEnd.inPlace = true;
 
     // Lock into position HERE
-    pieceDragEnd.mesh.position.x = pieceDragEnd.starting_X;
-    pieceDragEnd.mesh.position.x = pieceDragEnd.starting_Y;
+    //pieceDragEnd.mesh.position.x =;
+    //pieceDragEnd.mesh.position.x = pieceDragEnd.starting_Y;
+    pieceDragEnd.mesh.position.set(0, 0, 0);
   }
 
   // Loop through all pieces to see if the puzzle is completed
@@ -308,14 +329,15 @@ function dragEnd(event) {
 
   // Puzzle has been completed
   if(completed) {
-    console.log("Completed!!!");
-  }
+    runTimer = false;
 
-  //console.log(pieceDragEnd);
-  console.log(pieceDragEnd.bounding_box);
-  console.log("POS2");
-  console.log(event.object.position);
+    console.log("Completed!!!");
+
+    clockReset.start();   
+  }
 }
+
+var clockReset = new THREE.Clock(false);
 
 // Locks in all the puzzle pieces that should be locked in
 function lockPuzzlePieces() {
@@ -339,50 +361,8 @@ function isWithinPoints(puzzle_piece, object) {
   return true;
 }
 
-// Coding the random placement around the box on-startup
-
-// function placePiecesRandomlyOnBoard() {
-
-//   console.log("Outline Bounding Box");
-//   console.log(outlineBoundingBox);
-
-//   for(var pieceOnBoard of puzzle_pieces) {
-    
-//       var randomX = 0;
-//       var randomY = 0;
-
-//       var good = false;
-//       while(!good) {
-
-//         randomX = getRandomArbitrary(-0.70, 0.70);
-//         randomY = getRandomArbitrary(-0.70, 0.70);
-
-//         pieceOnBoard.mesh.position.x = randomX;
-//         pieceOnBoard.mesh.position.y = randomY;
-
-
-
-//         if(intersectsBoundingBox(pieceOnBoard.bounding_box, outlineBoundingBox)) {
-//             console.log("Intersects: " + true);
-//         } else {
-//           console.log("Intersects: " + false);
-//         }
-
-//         //console.log(pieceOnBoard.bounding_box);
-//         //console.log(outlineBoundingBox);
-
-//       }
-
-//       //console.log(`${randomX} ${randomY}`);
-
-//   }
-
-// }
-
 // This function determines if two bounding boxes are touching
 function intersectsBoundingBox(bb1, bb2) {
-
-    console.log(bb2);
 
     var bb1X = bb1.min.x;
     var bb1Y = bb1.min.y;
@@ -414,12 +394,51 @@ function intersectsBoundingBox(bb1, bb2) {
 
 }
 
-    
-    
+var runTimer = true;
+var timer = document.createElement('div');
+timer.style.position = 'absolute';
+//text2.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+timer.style.width = 100;
+timer.style.height = 100;
+timer.innerHTML = "0:0:0";
+timer.style.top = 10 + 'px';
+timer.style.left = 10 + 'px';
+timer.style.fontSize = 3 + 'rem';
+document.body.appendChild(timer);
+
+function drawTime() {
+
+  // If the timer is off, return.
+  if(!runTimer) return;
+
+  var s = Math.floor(clock.getElapsedTime());
+
+  var hours = Math.floor(s / 3600);
+  var minutes = Math.floor((s - (hours * 3600)) / 60);
+  var seconds = Math.floor((s - (hours * 3600) - (minutes * 60)));
+  
+  timer.innerHTML = `${hours}:${minutes}:${seconds}`;
+
+}
 
 function animate() {
 
-   puzzle_pieces.forEach(m => {
+  console.log(Math.floor(clock.getElapsedTime()));
+  drawTime();
+
+  // If the ending animation has gone for more than 12 seconds, then reset.
+  if(clockReset.getElapsedTime() > 7) {
+    window.location.reload();
+  }
+
+  // We know everything is completed, So scatter blocks
+  if(!runTimer) {
+      puzzle_pieces.forEach(m => {
+        m.mesh.position.set(m.mesh.position.x + getRandomArbitrary(0.005 * m.escape_direction.x, 0.005 * m.escape_direction.y), m.mesh.position.y + getRandomArbitrary(0.005 * m.escape_direction.x, m.escape_direction.y * 0.005), 0);
+      })
+  }
+
+  puzzle_pieces.forEach(m => {
     m.bounding_box.copy( m.mesh.geometry.boundingBox ).applyMatrix4( m.mesh.matrixWorld );
    });
 
@@ -486,15 +505,11 @@ function intersectsAnyPiecesOfPuzzle( piece ) {
     return false
 }
 
-// Then animate 
-// animateClean();
-
-// Determine if they intersect
- //puzzle_pieces.forEach(m => {
- //  console.log("Intersects: " + intersectsBoundingBox(outlineBoundingBox, m.bounding_box));
- //});
 
 animate();
+
+// Drawing the Stopwatch
+
 
 </script>
 
