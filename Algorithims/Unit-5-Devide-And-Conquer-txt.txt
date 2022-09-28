@@ -1,0 +1,7 @@
+Decrease and Conquer / Divide and Conquer:
+
+Three Types:
+	- Decrease by a constant amount ( -1 )
+	- Decrease by a constant factor ( /2 )
+	- Decrease by a variable amount ( /x, where x changes ) 
+
