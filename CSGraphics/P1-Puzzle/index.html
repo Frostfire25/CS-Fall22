@@ -277,6 +277,9 @@ function dragEnd(event) {
   // We have this here because if a piece ends up in a place that is not the locked position, we want to add it back to draggable objects
   var pieceDragEnd = puzzle_pieces.find(m => m.mesh.id == event.object.id);
 
+  console.log("POS1");
+  console.log(event.object.position);
+
   console.log(pieceDragEnd.mesh.id + " " + event.object.id);
   // If the piece wasn't found.
   if(pieceDragEnd == null || pieceDragEnd == undefined) { console.log("Undefined piece found when moving"); return; }
@@ -305,12 +308,13 @@ function dragEnd(event) {
 
   // Puzzle has been completed
   if(completed) {
-
+    console.log("Completed!!!");
   }
 
   //console.log(pieceDragEnd);
   console.log(pieceDragEnd.bounding_box);
-
+  console.log("POS2");
+  console.log(event.object.position);
 }
 
 // Locks in all the puzzle pieces that should be locked in
@@ -337,59 +341,81 @@ function isWithinPoints(puzzle_piece, object) {
 
 // Coding the random placement around the box on-startup
 
-function placePiecesRandomlyOnBoard() {
+// function placePiecesRandomlyOnBoard() {
 
-  console.log("Outline Bounding Box");
-  console.log(outlineBoundingBox);
+//   console.log("Outline Bounding Box");
+//   console.log(outlineBoundingBox);
 
-  for(var pieceOnBoard of puzzle_pieces) {
+//   for(var pieceOnBoard of puzzle_pieces) {
     
-      var randomX = 0;
-      var randomY = 0;
+//       var randomX = 0;
+//       var randomY = 0;
 
-      var good = false;
-      while(!good) {
-        randomX = getRandomArbitrary(-0.70, 0.70);
-        randomY = getRandomArbitrary(-0.70, 0.70);
+//       var good = false;
+//       while(!good) {
 
-        if(intersectsBoundingBox(outlineBoundingBox, (outlineBoundingBox.max.x - outlineBoundingBox.min.x), (outlineBoundingBox.max.y - outlineBoundingBox.min.y),
-        pieceOnBoard.bounding_box, (pieceOnBoard.bounding_box.max.x - pieceOnBoard.bounding_box.min.x), (pieceOnBoard.bounding_box.max.y - pieceOnBoard.bounding_box.min.y))) {
-            console.log("Intersects: " + true);
-        } else {
-          console.log("Intersects: " + false);
-        }
+//         randomX = getRandomArbitrary(-0.70, 0.70);
+//         randomY = getRandomArbitrary(-0.70, 0.70);
 
-        console.log(pieceOnBoard.bounding_box);
-        console.log(outlineBoundingBox);
+//         pieceOnBoard.mesh.position.x = randomX;
+//         pieceOnBoard.mesh.position.y = randomY;
 
-        good = true;
-      }
 
-      //console.log(`${randomX} ${randomY}`);
-      console.log(pieceOnBoard);
 
-      pieceOnBoard.mesh.position.x = randomX;
-      pieceOnBoard.mesh.position.y = randomY;
-  }
+//         if(intersectsBoundingBox(pieceOnBoard.bounding_box, outlineBoundingBox)) {
+//             console.log("Intersects: " + true);
+//         } else {
+//           console.log("Intersects: " + false);
+//         }
 
-}
+//         //console.log(pieceOnBoard.bounding_box);
+//         //console.log(outlineBoundingBox);
 
-// This function determines if two bounding boxes are toutching
-// Used help from https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
-function intersectsBoundingBox(bb1, w1, h1, bb2, w2, h2) {
+//       }
 
-    if(bb1.min.x < bb2.min.x + w2 &&
-    bb1.min.x + w1 > bb2.min.x &&
-    bb1.min.y < bb2.min.y + h2 &&
-    h1 + bb1.min.y > bb2.min.y) {
+//       //console.log(`${randomX} ${randomY}`);
+
+//   }
+
+// }
+
+// This function determines if two bounding boxes are touching
+function intersectsBoundingBox(bb1, bb2) {
+
+    console.log(bb2);
+
+    var bb1X = bb1.min.x;
+    var bb1Y = bb1.min.y;
+
+    var bb1XM = bb1.max.x;
+    var bb1YM = bb1.max.y;
+
+    var bb2P1 = new point2D(bb2.min.x, bb2.min.y);
+    var bb2P2 = new point2D(bb2.max.x, bb2.min.y);
+    var bb2P3 = new point2D(bb2.min.x, bb2.max.y);
+    var bb2P4 = new point2D(bb2.max.x, bb2.max.y);
+
+    if(contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P1.x, bb2P1.y) 
+    || contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P2.x, bb2P2.y) 
+    || contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P3.x, bb2P3.y) 
+    || contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P4.x, bb2P4.y)) {
       return true;
     }
 
+    function contains(x1, y1, x2, y2, x, y)
+    {
+      //console.log(`${x1} ${y1} ${x2} ${y2} ${x} ${y}`);
+      if (x > x1 && x < x2 && y > y1 && y < y2)
+          return true;
+      return false;
+    }
+
     return false;
+
 }
 
-// Initiates graphical loops
-animate();
+    
+    
 
 function animate() {
 
@@ -401,12 +427,74 @@ function animate() {
    render();
 }
 
+function animateClean() {
+  puzzle_pieces.forEach(m => {
+    m.bounding_box.copy( m.mesh.geometry.boundingBox ).applyMatrix4( m.mesh.matrixWorld );
+   });
+
+   render();
+}
+
 function render() {
   renderer.render( scene, camera );
 }
 
+function placePieceRandomly( pieceForBoard ) {
+  var randomX = getRandomArbitrary(-1.5, 1.5);
+  var randomY = getRandomArbitrary(-0.70, 0.70);
+
+  pieceForBoard.mesh.geometry.vertices.verticesNeedUpdate = true;
+
+  pieceForBoard.mesh.position.setX(randomX);
+  pieceForBoard.mesh.position.setY(randomY);
+  pieceForBoard.mesh.updateMatrix();
+  pieceForBoard.mesh.geometry.vertices.verticesNeedUpdate = true;
+
+  pieceForBoard.bounding_box.setFromObject(pieceForBoard.mesh);
+
+  render();
+
+}
+
 // Places the pieces randomly on the board
-placePiecesRandomlyOnBoard();
+puzzle_pieces.forEach(m => {
+
+  // Generate a random piece
+  placePieceRandomly(m);
+  
+  var i = 0;
+  while(true) {
+
+    if((!intersectsBoundingBox(outlineBoundingBox, m.bounding_box) && !intersectsAnyPiecesOfPuzzle(m)) || i++ == 100) {
+        console.log(i);
+        break;
+    } else {
+      placePieceRandomly(m);
+    }
+  }
+
+});
+
+// Determine if a piece is colliding with another piece on the plane.
+function intersectsAnyPiecesOfPuzzle( piece ) {
+    for(var p of puzzle_pieces.filter(m => m.mesh.id != piece.mesh.id)) {
+      if(intersectsBoundingBox(p.bounding_box, piece.bounding_box)) {
+        return true;
+      }
+    }
+
+    return false
+}
+
+// Then animate 
+// animateClean();
+
+// Determine if they intersect
+ //puzzle_pieces.forEach(m => {
+ //  console.log("Intersects: " + intersectsBoundingBox(outlineBoundingBox, m.bounding_box));
+ //});
+
+animate();
 
 </script>
 
