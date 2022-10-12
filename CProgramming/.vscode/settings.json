@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "conio.h": "c"
+        "conio.h": "c",
+        "unistd.h": "c",
+        "joblist.h": "c",
+        "history.h": "c"
     }
 }

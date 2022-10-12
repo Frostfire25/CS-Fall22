@@ -2,7 +2,6 @@
 /// Practice1.c
 
 #include<stdio.h> 
-#include<conio.h>  
 #include<stdlib.h>
 #include"Practice1.h" // define the header file  
 #include <unistd.h> // Unix import
