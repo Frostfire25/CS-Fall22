@@ -11,6 +11,11 @@
 #include <ctype.h>
 #include <errno.h>
 
+/* Added by Alex */
+#include <sys/types.h>
+#include <sys/wait.h>
+
+
 /* Our libraries. */
 #include "history.h"
 #include "joblist.h"
@@ -21,8 +26,12 @@
 /* Prototypes */
 void get_command(char *);
 void sanitize_string(char *);
+char* copyString(char s[]);
 int build_argument_array(char***, int*, char*);
-void handle_command(char** argv, int argc);
+int handle_command(char** argv, int argc, char* cmd);
+
+char quit_one[] = "quit";
+char quit_two[] = "exit";
 
 int main(int argc, char **argv)
 {
@@ -34,37 +43,23 @@ int main(int argc, char **argv)
     // your statements
 
 	// Messages and Symbols
-	char msg_header[] = "msh> ";
-	//char space[] = "\n";
-	char quit_one[] = "quit";
-	char quit_two[] = "exit";
 	char error_message[] = "It looks like your command has an error, please try again.";
 
 	while(done >= 0) {
 		get_command(cmd);
 
-
 		// Number of arguments
 		int argc;
 		// Matrix for arguments
 		char **argv;
+		// Save the command
+		char *cmd_holder = copyString(cmd);
 
 		// Builds the argument array, fills out argc and argv
 		build_argument_array(&argv, &argc, cmd);
 
-		handle_command(argv, argc);
-
-		// print cmd
-   		//printf("%s\n", cmd);
-
-		//printf("%d", strncasecmp("hello", "Hello", sizeof "Hello" ));
-
-		// Get rid of the memory
-		//free(cmd);
+		done = handle_command(argv, argc, cmd_holder);
 	}
-    
-    // Get rid of the memory
-	//free(cmd);
 
 	return 0;
 }
@@ -72,12 +67,50 @@ int main(int argc, char **argv)
 /**
  * handle_command
  * Description: This function handles a command and creates processes
+ * Returns: -1 if quitting, 0 if system command is executed, and > 0 if an error has occured (error type associated w/ value).
+ * Got help from: https://www.section.io/engineering-education/fork-in-c-programming-language/
 */
-void handle_command(char** argv, int argc) {
-	for(int i = 0; i < argc; i++) {
-		printf("%s ", argv[i]);
+int handle_command(char** argv, int argc, char* cmd) {
+	
+	// Determine if quit statement
+	if( strncasecmp(argv[0], quit_one, sizeof quit_one ) == 0 || strncasecmp(argv[0], quit_two, sizeof quit_two ) == 0 ) {
+		return -1; // Return a negative number because we are quitting the loop.
 	}
+
+	pid_t pid = fork();
+	int status;
+
+	if (pid < 0) { /* error occurred */
+   		fprintf(stderr, "Fork Failed");
+   		return -1;
+   	}
+	else if (pid == 0) { /* child process */
+		// If nothing has been returned yet, then we know to run a system command
+		// Using system call instead of exec, may change this in the future
+		system(cmd);
+		exit(0);
+    }
+    else { /* parent process */
+    	/* parent will wait for the child to complete */
+   	    wait(&status);
+		return 0;
+    }
+
+
+	return 0;
 }
+
+// Function to copy the string
+// https://www.geeksforgeeks.org/different-ways-to-copy-a-string-in-c-c/
+char* copyString(char s[])
+{
+    char* s2;
+    s2 = (char*)malloc(20);
+ 
+    strcpy(s2, s);
+    return (char*)s2;
+}
+ 
 
 
 /**********************************************
