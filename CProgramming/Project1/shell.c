@@ -30,6 +30,8 @@ char* copyString(char s[]);
 int build_argument_array(char***, int*, char*);
 int handle_command(char** argv, int argc, char* cmd);
 
+// Messages and Symbols
+char error_message[] = "It looks like your command has an error, please try again.\n Error code: ";
 char quit_one[] = "quit";
 char quit_two[] = "exit";
 
@@ -42,10 +44,7 @@ int main(int argc, char **argv)
     
     // your statements
 
-	// Messages and Symbols
-	char error_message[] = "It looks like your command has an error, please try again.";
-
-	while(done >= 0) {
+	while(done == 0) {
 		get_command(cmd);
 
 		// Number of arguments
@@ -55,10 +54,16 @@ int main(int argc, char **argv)
 		// Save the command
 		char *cmd_holder = copyString(cmd);
 
-		// Builds the argument array, fills out argc and argv
+		// Builds the argument array, fills out argc and argv.
 		build_argument_array(&argv, &argc, cmd);
 
+		// Handle the command and determine what needs to happen with the program.
 		done = handle_command(argv, argc, cmd_holder);
+
+		// If done is greater than 0, than we know an error was thrown with error id(done).
+		if(done > 0) {
+			printf("%s %d", error_message, done);
+		}
 	}
 
 	return 0;
@@ -80,20 +85,25 @@ int handle_command(char** argv, int argc, char* cmd) {
 	pid_t pid = fork();
 	int status;
 
+	// Construct command
+	//char argv_args[argc];
+	//for(int i = 0; i < argc; i++) {
+	//	argv_args[i] = *argv[i];
+	//}
+
 	if (pid < 0) { /* error occurred */
    		fprintf(stderr, "Fork Failed");
-   		return -1;
+   		return 1;
    	}
 	else if (pid == 0) { /* child process */
 		// If nothing has been returned yet, then we know to run a system command
 		// Using system call instead of exec, may change this in the future
-		system(cmd);
+		execvp(argv[0], argv);
 		exit(0);
     }
     else { /* parent process */
     	/* parent will wait for the child to complete */
    	    wait(&status);
-		return 0;
     }
 
 
