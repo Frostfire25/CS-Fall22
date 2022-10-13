@@ -10,6 +10,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <string.h>
+#include <stdbool.h>
 
 /* Added by Alex */
 #include <sys/types.h>
@@ -22,13 +24,15 @@
 
 /* Define the maximum command length */
 #define CMDLEN	1024
+int COMMAND_STACK_SIZE = 1024; // Amount of commands that can be put into the stack 
+int COMMAND_HISTORY_SIZE = 1000; // Amount of commands that will be stored in history
 
 /* Prototypes */
 void get_command(char *);
 void sanitize_string(char *);
 char* copyString(char s[]);
 int build_argument_array(char***, int*, char*);
-int handle_command(char** argv, int argc, char* cmd);
+int handle_command(char** argv, int argc, char* cmd, history_hdl_t *cmd_history, joblist_hdl_t *jobs);
 
 // Messages and Symbols
 char error_message[] = "It looks like your command has an error, please try again.\n Error code: ";
@@ -39,8 +43,8 @@ int main(int argc, char **argv)
 {
     int done = 0;    /* Determines if the user exites the shell. If done < 0, shell is exited */
     char cmd[CMDLEN];    /* Allocate space for a command. */
-    history_hdl_t *cmd_history;    /* Holds the command history. */
-    joblist_hdl_t *jobs;    /* The joblist. */
+    history_hdl_t *cmd_history = history_create(COMMAND_HISTORY_SIZE);  /* Holds the command history. */
+	joblist_hdl_t *jobs = joblist_create(); /* The joblist. */
     
     // your statements
 
@@ -48,7 +52,7 @@ int main(int argc, char **argv)
 		get_command(cmd);
 
 		// Number of arguments
-		int argc;
+		int argc = -1;
 		// Matrix for arguments
 		char **argv;
 		// Save the command
@@ -57,13 +61,17 @@ int main(int argc, char **argv)
 		// Builds the argument array, fills out argc and argv.
 		build_argument_array(&argv, &argc, cmd);
 
-		// Handle the command and determine what needs to happen with the program.
-		done = handle_command(argv, argc, cmd_holder);
+		// Make sure the user did not eneter a space.
+		if(strcmp(cmd, "") != 0 && strcmp(cmd, " ") != 0) 
+			// Handle the command and determine what needs to happen with the program.
+			done = handle_command(argv, argc, cmd_holder, cmd_history, jobs);
 
 		// If done is greater than 0, than we know an error was thrown with error id(done).
 		if(done > 0) {
 			printf("%s %d", error_message, done);
 		}
+
+		//joblist_print(jobs);
 	}
 
 	return 0;
@@ -75,35 +83,69 @@ int main(int argc, char **argv)
  * Returns: -1 if quitting, 0 if system command is executed, and > 0 if an error has occured (error type associated w/ value).
  * Got help from: https://www.section.io/engineering-education/fork-in-c-programming-language/
 */
-int handle_command(char** argv, int argc, char* cmd) {
-	
+int handle_command(char** argv, int argc, char* cmd, history_hdl_t *cmd_history, joblist_hdl_t *jobs) {	
+
 	// Determine if quit statement
 	if( strncasecmp(argv[0], quit_one, sizeof quit_one ) == 0 || strncasecmp(argv[0], quit_two, sizeof quit_two ) == 0 ) {
 		return -1; // Return a negative number because we are quitting the loop.
 	}
 
+	// Determines if this task is a background process.
+	bool backgroundProcess = (strcmp(argv[argc-1], "&") == 0) ? true : false;
+
+	// Create a new process
 	pid_t pid = fork();
 	int status;
-
-	// Construct command
-	//char argv_args[argc];
-	//for(int i = 0; i < argc; i++) {
-	//	argv_args[i] = *argv[i];
-	//}
 
 	if (pid < 0) { /* error occurred */
    		fprintf(stderr, "Fork Failed");
    		return 1;
    	}
 	else if (pid == 0) { /* child process */
-		// If nothing has been returned yet, then we know to run a system command
-		// Using system call instead of exec, may change this in the future
-		execvp(argv[0], argv);
+
+		// Add the process to the history
+		history_add(cmd_history, cmd);
+
+		/*
+		Command Cases
+		*/
+		if(strcasecmp(argv[0], "history") == 0) { // History command
+			//printf("%d", history_is_empty(cmd_history));
+			if(history_is_empty(cmd_history) <= 0) 
+			{ printf("The command history is empty.\n");} else {history_print(cmd_history);}
+		} else if(strcasecmp(argv[0], "jobs") <= 0) { // Job command
+			if(joblist_is_empty(jobs) == 0) 
+			{ printf("The jobs list is empty.\n");} else {joblist_print(jobs);}
+		}
+		// Execute the given command.
+		else {
+			execvp(argv[0], argv);
+		}
+		
 		exit(0);
+
+		joblist_remove_job(jobs, pid);
     }
     else { /* parent process */
     	/* parent will wait for the child to complete */
-   	    wait(&status);
+
+		// Add the process to the job handler.
+		joblist_add_job(jobs, pid);
+
+		// If this is not a background process, we want to wait for the process to finish.
+		if(!backgroundProcess) {
+   	    	pid_t to_remove = wait(&status);
+			joblist_remove_job(jobs, to_remove);
+		} 
+		// If this is a background process, we will wait for the process to complete, and then remove it from the job list
+		// WITHOUT stopping the current process.
+		// That is why I am using the option WUNTRACED (Return immediately if no child has exited. WUNTRACED: Also return if a child has stopped. Status for traced children which have stopped is provided even if this option is not specified.)
+		else {
+			pid_t to_remove = waitpid(pid, &status, WUNTRACED);
+			joblist_remove_job(jobs, to_remove);
+		}
+
+		
     }
 
 

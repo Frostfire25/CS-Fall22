@@ -11,7 +11,7 @@
 #include <string.h> /* For string manipulation operations. */
 #include <assert.h> /* For assert(3). */
 
-#include <head/history.h>
+#include "history.h"
 
 /* Node Type */
 struct node

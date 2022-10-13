@@ -14,7 +14,7 @@
 #include <assert.h> /* For assert(3). */
 #include <unistd.h>
 
-#include <head/joblist.h>
+#include "joblist.h"
 
 /* Node Type */
 struct node
