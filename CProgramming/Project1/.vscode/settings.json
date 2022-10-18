@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "history.h": "c",
+        "unistd.h": "c",
+        "joblist.h": "c"
+    }
+}

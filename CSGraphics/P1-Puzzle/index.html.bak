@@ -22,7 +22,6 @@
  * Current Bugs
  *   - Very small pieces being generated
  *   - Pieces with the same shade as the background are being generated making finding them harder than a typical piece
- *   - Minimum amount of pieces is 8.
  */
 
 // Start of Javascript code
