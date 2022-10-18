@@ -1,0 +1,90 @@
+Synchronization Tools:
+
+Objectives:
+	- Describe the critical-selectio problem and illustrate a race condition.
+	- Illustrate hardware solutions to the critical-selectio problem using memory barriers, compare-and-swap- operations, and atomic variables.
+	- Demonstate how mutex locks, semaphores, monitors, and condition variables can be used to solve the ciritcal section problem.
+	
+Background:
+	- Processes can be executed concurrently. (May interrupt at any time)
+	- Concurrent access to shared data may resul in data inconsistency
+	- Maintaining data consistency requires mechanisms to ensure the orderly execution of cooperating processes.
+	- Illusration of the problem: 
+	
+Race Codition:
+	- when 2 or more processes are racing to assign a value or operate on one variable/item.
+	
+Critical Selection Process:
+	- Consider system of n processes {pn..}
+	- Each process has a critical section segment of code
+		- Changing common variables, writing files, updating data/tables
+		- When one process is in critical section no other process should be
+	- Critical selection problem is desgned protocol to selve this problem
+	- Each process mst ask permission to enter critical selection
+  Solution:
+	- Mutual Exclusion - Only one process can be in critical selection
+	- Progress - When there are waiting processes to be in critical selection and none is in, then it can go into ciritcal selection
+	- Bounded Waiting - A bound must exist on the number of times that other proess are allowed to enter their ciritcal sections 
+	  after a process has made a request to enter its critical setion and before that request is granted. Non-Zero speed, No assumption concerning N-speed
+	Critical-Section Handling in OS
+	- Preemptive - allows preemption of process when running in kernel mode
+	- Non-preemptive runs until exits kernel mode, blocks, or voluntarialy yields CPU
+	Peterson's Solution
+		- Peterson's Solution is not guarenteed to work on modern architectures.
+		- Two processes solution
+		- Peterson's algorithm (or Peterson's solution) is a concurrent programming algorithm for mutual exclusion that allows two or more processes
+			to share a single-use resource without conflict, using only shared memory for communication. It was formulated by Gary L. Peterson in 1981.
+
+
+Hardware Instructions:
+	- Test-and-set: instruction - Executed atomically, returns the original value of passes parameter, sets the new value of passes parameter to true.
+	- Compare-and-swap: intruction - 
+	
+	
+Synchronization:
+We do not want to end up with inconsistent result/data from running concurrent processes.
+
+Consumer and Producer.
+
+Critical Selection Problem:
+	- Consider system of n processes
+	- Each proces smust ask permission to enter critical section in entry section, may folow critical section with exit sextion, then remainder section. 
+	- Solution
+		- Mutual Exclusion - If process P is executing n its critical section, then no other processes can be executing i their ciritcal sectin.
+		- Progress - If no proces sis executing in critical section. And there is a process that wishes to eneter critical section. Then signal the process into critical selection
+		- Bounded Waiting - A limit must exist on the number of times that other processes are allowed to enter the critical section.
+		
+Petersons Solution
+
+Synchronization Hardware:
+	 - Memory Barriers: 
+		- Memory Model are the memory guarentees a computer architecture makes to application program.
+		- Strongly Or Weakly Ordered: Where memory modification of one processor is immediately visable to all other processors.
+	Hardware Instructions:
+		- Special hardware instuctions that llow us to either test-and-modify the content of a word, or two swap the contents of two words atomatically.
+		- Test-and-set instruction
+		- 
+		
+Atomic Variables:
+	- Typically, instructions such as compare-and-swap are used as building blokcs for other synchronous tools.
+	
+mutex locks 
+	- OS designers build software tools to solve critical selection problem.
+	- Protect a critical-selection by first squire() a lock and reloeae() the lock. Boolean variable inicating if lock is availabe or not.
+	- Calls to acquire() and release() must be atomic.
+		- Usually implemented via hardware atomic instructions such as compare-and-swap.
+
+Strictly speaking, a mutex is a locking mechanism used to synchronize access to a resource. 
+Only one task (can be a thread or process based on OS abstraction) can acquire the mutex.
+It means there is ownership associated with a mutex, and only the owner can release the lock (mutex). 
+
+Semaphore is signaling mechanism (“I am done, you can carry on” kind of signal). 
+For example, if you are listening to songs (assume it as one task) on your mobile phone and at the same time, your friend calls you, 
+an interrupt is triggered upon which an interrupt service routine (ISR) signals the call processing task to wakeup. 
+https://www.geeksforgeeks.org/mutex-vs-semaphore/
+
+We will make use of two semaphores and an integer variable:
+	1. Mutex, when a semaphore (initilized to 1) which is used to ensure mutual exclusion. When readcount is updated i.e when any reader enters or exit from the criticl section.
+	2. wrt, a semaphore (initilized to 1) common to both reader and writer processes.
+	3. readcount, an integer varaible (initialized to 0) that keeps track of how many processes are currently reading the object.
+	

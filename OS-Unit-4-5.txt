@@ -36,6 +36,17 @@ speedup <= 1/(S + ((1-S) / N))
 If an application is 75% parallel / 25% serial, moving from 1 -> 2 cores results in a speedup of 1.6x.
 
 User & Kener threads
+	User Threads:
+		- Ran inside of the user space.
+		- OS doesn't recognize user threads.
+		- Context switch takes less time.
+		- No dependency, there can be as many as you want
+		- If one thread performs a blocking execution the process can not run.
+	Kernel Threads:
+		- Ran inside of the OS
+		- Context Switch takes more time
+		- Hardware depedent (limited #)
+		- Non-Blocking, if one thread permforms a blocking execution other threads can run
 	Many to One (User threads to Kernel Threads)	
 		- Many user level threads mapped to one kernel level thread.
 	One to One (User threads to Kernel Threads) BEST! and most commonly used.
@@ -89,6 +100,8 @@ Thread Pool:
 	Zombie - When there are two processes there are a parent and a child. 
 		- Doing the same task as the parent
 	Orphan - When the parent exits without calling wait
+	Zombie creation : the parent has yet to call wait when chid completes its task.
+• Orphan Creation: when the parent exit without ever calling wait
 	
 Context-Switch
 	- Changing state to execute its function through CPU
@@ -96,6 +109,9 @@ Context-Switch
 	- Only happens in kernel mode.
 	- It triggers interrupt handling
 	- Ensuring that tasks do not conflict from one process to another
+	- Process: Start I/O, Mark P1 as blocked, Save P1, Load P2, Execute P2.
+		- Then do P2 while P1 is in an idle state.
+		- Then return back to P1.
 	
 Thread Types
 	- One to One
@@ -104,6 +120,7 @@ Thread Types
 	
 IPC communication
 	- Two child proceses would communicate with each other using the pipe IPC.
+	- Inter-process communications, allows processes ro share data.
 	
 Synchronous vs Asynchronous
 	- Sync signals happen when the context of a given thread is 

@@ -3,17 +3,29 @@ n^2 , lg n, n^2lg n and 2^(lg n). Please justify your answer.
 
 1. lg n	
 2. 2^(lg n)
-3. n^2 lg n
-4. n^2
+3. n^2
+4. n^2 lg n
+
+When graphing the functions out we get are able to determine the rate of change for how quick a function's operations grow
+based off the running time.
 
 2. Consider code for the algorithm Mystery below:
 
 -- Code --
 
-(a) (3 points) What does this algorithm compute?
+(a) (3 points) What does this algorithm compute? Adds up all of the numbers in array A and divides them by the size of the array
 (b) (6 points) What is the running time of this algorithm? Please be sure to show all
 your work and use big-O notation.
 
+Line - Operations
+1	1
+2	n
+3	n
+4	1
+
+T(n) = 1+n+n+1
+T(n) = 2n + 2
+O(n)
 
 3. (5 points) Using back substitution (not the master method), give the asymptotic bound
 for the running time
@@ -21,7 +33,16 @@ for the running time
 T(n) = T(n/2) + n^2
 Assume that T (1) = 1. Please show all your work.
 
-1
+Substitution
+T(n) = T(n/2) + (n/2)^2 + n^2
+T(n) = T(n/4) + (n/4)^2 + (n/2)^2 + n^2
+
+Find for value k
+T(n) = T((n/2^k)) + sum(i=1, k: (n/i)^2)
+
+Replace summation with closed form
+T(n) = 
+
 
 4. Consider the following recursive algorithm
 # Input : An array of integers A
