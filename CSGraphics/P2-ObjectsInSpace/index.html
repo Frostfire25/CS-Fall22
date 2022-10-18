@@ -1,8 +1,44 @@
 <html>
 <head>
     <title>(Project 2) Objects in Space</title>
+    <!--"Blocker" Code Grabbed from: https://threejs.org/examples/misc_controls_pointerlock.html -->
+    <style>
+        #blocker {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        #instructions {
+            width: 100%;
+            height: 100%;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            text-align: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+<div id="blocker">
+    <div id="instructions">
+        <p style="font-size:36px; font-family: Helvetica, Arial, sans-serif; font-weight: bold; color: rgba(226, 226, 226, 0.75);">
+            Click to play
+        </p>
+        <p style="font-size:16px; font-family: Helvetica, Arial, sans-serif; font-weight: bold; color: rgba(226, 226, 226, 0.75);">
+            Look: MOUSE<br />
+            Toggle Movement: X<br />
+            Toggle Movement Direction: Z
+        </p>
+    </div>
+</div>
+
 
 <canvas id="myCanvas"></canvas>
 
@@ -27,19 +63,15 @@ function getRandomArbitraryInt(min, max) {
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
 import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
-import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
+import { PointerLockControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls'
 
 /**
  * Initilization function, creating scene, camera, and objects.
  */
 // Creating Scene and Camera
- var scene = new THREE.Scene();
+var scene = new THREE.Scene();
 //scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0005 );
 
-var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.z = 0;  // Try moving this around!
-//camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
-scene.add( camera );
 
 // Renderer 
 
@@ -53,6 +85,33 @@ renderer.setClearColor(0x000000);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+// Adding in the cameras
+const cameraGroup = new THREE.Group();
+
+var startingCameraZ = 0;
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = startingCameraZ;  // Try moving this around!
+//camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+cameraGroup.add( camera );
+
+// Main Camera
+var windowWidth = window.innerWidth;
+var windowHeight = window.innerHeight;
+
+var rearViewCamera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+rearViewCamera.position.z = startingCameraZ;
+//camera.rotate.y = 90 * Math.PI / 180
+cameraGroup.add( rearViewCamera );
+scene.add( cameraGroup );
+
+// Automiattically adjusts video based on resize.
+document.body.appendChild( renderer.domElement );
+window.addEventListener( 'resize', function() {
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    renderer.setSize( width, height );
+});
+
 // Light
 var light = new THREE.PointLight( 0xff7f24, 6, 1000 );
 light.position.set( 0, 0, 0 );
@@ -64,22 +123,23 @@ light.shadow.camera.far = 1500;
 scene.add(light);
 
     // Create rocks
-var rock = createRock(2+Math.random()*25, 50, 1000, 300, 300, 400);
-scene.add( rock );
+//var rock = createRock(2+Math.random()*25, 50, 1000, 300, 300, 400);
+//scene.add( rock );
 
 generateRocks(camera.position.z);
 
-
+var rocks;
 /**
  * Generates the asteroids based off of where the Z of the camera is.\
  */
 function generateRocks(cameraZ) {
     
     var numOfRocks = getRandomArbitraryInt(35, 100);
-    var rocks = [];
+    rocks = [];
 
     for(var i = 0; i < numOfRocks; i++) {
         var rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
+        rock.velocity = generateRandomVelocity();
         rocks.push(rock);
         scene.add( rock );
     }
@@ -148,45 +208,157 @@ function ColorLuminance(hex, lum) {
     return rgb;
 }
 
+/**
+ * Generating random velocities for rocks to fly in
+ */
+function generateRandomVelocity() {
+    var velocity = Math.random().toFixed(3) * 2;
+    var remaining = velocity;
+    var posNeg = Math.round(Math.random()); // One or zero for pos/neg
+    var xVel = Math.round(Math.random() * remaining);
+    remaining -= xVel;
+    if(posNeg == 1)
+        xVel *= -1;
+    var yVel = (Math.random() * remaining).toFixed(3);
+    posNeg = Math.round(Math.random()); // One or zero for pos/neg
+    remaining -= yVel;
+    if(posNeg == 1)
+        yVel *= -1;
+    var zVel = remaining;
+    posNeg = Math.round(Math.random()); // One or zero for pos/neg
+    if(posNeg == 1)
+        zVel *= -1;
+
+    return new THREE.Vector3(xVel, yVel, zVel);
+}
+
+/**
+ * Object movement through space
+ */
+function moveObject(obj, newPos, deltaVal) {
+    obj.position.x += newPos.x * deltaVal;
+    obj.position.y += newPos.y * deltaVal;
+    obj.position.z += newPos.z * deltaVal;
+}
 
 
+/**
+ * Camera controls (mouse input)
+ * Grabbed from: https://threejs.org/examples/misc_controls_pointerlock.html
+ */
+const camControls = new PointerLockControls( camera, document.body );
 
+const blocker = document.getElementById( 'blocker' );
+const instructions = document.getElementById( 'instructions' );
 
+instructions.addEventListener( 'click', function () {
 
+    camControls.lock();
 
+} );
+
+camControls.addEventListener( 'lock', function () {
+
+    instructions.style.display = 'none';
+    blocker.style.display = 'none';
+
+} );
+
+camControls.addEventListener( 'unlock', function () {
+
+    blocker.style.display = 'block';
+    instructions.style.display = '';
+
+} );
+
+var lastTimeStamp = Date.now();
+var moving = false;
+var tog = false;
+var multiplier = 0.2;
+// Fields for camera movement
+var targetVector = new THREE.Vector3();
 function animate() {
-
-    // Can't do this for movement because it is based on the rendering time of the render() method.
-    //camera.position.z = camera.position.z - 1;
-
     requestAnimationFrame(animate);
+
+    /**
+     * Move the camera in space
+     */
+    var now = Date.now();
+    var dt = now - lastTimeStamp;
+    lastTimeStamp = now;
+    if(moving)
+        if(tog)
+            moveObject(camera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
+        else
+            moveObject(camera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
+    // Note: This moves the camera by an amount proportionate to the elapsed time, not the frame count.
+
+    /**
+     * Move the rocks in space
+     */
+    rocks.forEach((rock) => {
+        moveObject(rock, rock.velocity, dt * multiplier);
+    });
+
+    //console.log(camControls.getDirection(targetVector));
+
     render();
 }
 
-document.addEventListener('keypress', keypressed );
+document.addEventListener('keypress', keypressed);
 
 function keypressed( event )
 {
-    const rotate_speed = 0.1;
+    
 
     switch(event.key) {
-        case "w": {
-            camera.rotateX( -rotate_speed );
+        /**
+         * For testing movement + rendering.
+         */
+        case "x": {// Starts and stops movement
+            moving = !moving;
         }; break;
-        case "a": {
-            camera.rotateY( -rotate_speed );
+        case "y": {// Starts and stops movement
+            tog = !tog;
         }; break;
-        case "s": {
-            camera.rotateX( rotate_speed );
-        }; break;
-        case "d": {
-            camera.rotateY( rotate_speed );
+        case "z": {// Reverses movement direction
+            multiplier *= -1;
         }; break;
     }		
 }
 
 function render() {
+   
+    // Render both cameras.
+    /*
+    const left = Math.floor( windowWidth * 1 );
+    const bottom = Math.floor( windowHeight * 1 );
+    const width = Math.floor( windowWidth * 1 );
+    const height = Math.floor( windowHeight * 1 );
+    renderer.setViewport( left, bottom, width, height );
+    renderer.setScissor( left, bottom, width, height );
+    */
+    renderer.setClearColor(0x000000);
+    renderer.setScissorTest( false );
+    camera.lookAt( scene.position );
+	camera.updateMatrixWorld( true );
     renderer.render( scene, camera );
+    
+    rearViewCamera.rotation.set(0, 0, -1);
+	rearViewCamera.updateMatrixWorld( true );
+    const left2 = Math.floor( windowWidth * 0.30 );
+    const bottom2 = Math.floor( windowHeight * 0.80 );
+    const width2 = Math.floor( windowWidth * 0.40 );
+    const height2 = Math.floor( windowHeight * 0.20 );
+    //renderer.setViewport( left2, bottom2, width2, height2 );
+    renderer.setScissor( left2, bottom2, width2, height2 );
+    renderer.setScissorTest( true );
+    renderer.setClearColor(0x111111);
+    renderer.render( scene, rearViewCamera );
+
+    console.log( scene.position );
+
+
 }
 
 animate();
