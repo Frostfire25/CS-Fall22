@@ -1,0 +1,1070 @@
+<html>
+<head>
+    <title>(Project 3) War Card Game</title>
+    <!--"Blocker" Code Grabbed from: https://threejs.org/examples/misc_controls_pointerlock.html -->
+    <style>
+     
+    </style>
+</head>
+<body>
+
+
+<canvas id="myCanvas"></canvas>
+
+<script type="module">
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Shuffles an array
+// https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+function shuffle(array) {
+  let currentIndex = array.length,  randomIndex;
+
+  // While there remain elements to shuffle.
+  while (currentIndex != 0) {
+
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+
+/**
+ * Determines if an array has duplicate objects
+ * https://stackoverflow.com/questions/7376598/in-javascript-how-do-i-check-if-an-array-has-duplicate-values
+ */
+function hasDuplicates(a) {
+
+    const noDups = new Set(a);
+    return a.length !== noDups.size;
+}
+
+/**
+ * Game of War
+ * By Derek Costello and Alexander Elguezabl
+ * 
+ * Please host a server to run the project, we are hosting textures.
+ * 
+ * If you have any questions please let us know!
+ * 
+ * Additional Items
+ * 
+ * - Complete Table Render
+ * - Deck Shuffling
+ * - Card Counter on table
+ * - Page refresh on win
+ * - Panning camera on key war and on camera key-press 'c'
+ * - War animation (flickerin light)
+ * - Orbit Controls
+ * 
+ */
+
+// Start of Javascript code
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
+import { SceneUtils } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/utils/SceneUtils.js'
+import TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.5.0/dist/tween.esm.js';
+
+const tweenCamera1 = new TWEEN.Tween( {x: -35, y: 85, z: 100, lookAtX: 0, lookAtY: 0, lookAtZ: 0} )
+  .to( {x: 45, y: 66, z: -80, lookAtX: 0, lookAtY: 0, lookAtZ: 0}, 7000 );
+
+/**
+ * Initilization function, creating scene, camera, and objects.
+ */
+// Creating Scene
+var scene = new THREE.Scene();
+//scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0005 );
+
+// Renderer 
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+//renderer.setClearColor( 0xffffff, 1 );
+//renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
+// If you want this to span the window, instead of using the myCanvas object, use the window object
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight * 1);
+renderer.setClearColor(0xB0AFAC);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Automiattically adjusts video based on resize.
+document.body.appendChild( renderer.domElement );
+window.addEventListener( 'resize', function() {
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    renderer.setSize( width, height );
+});
+
+// Adding a camera
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+const cameraStartX = 0;
+const cameraStartY = 50;
+const cameraStartZ = 40;
+camera.position.set(cameraStartX, cameraStartY, cameraStartZ);  // Try moving this around!
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Light
+var light = new THREE.AmbientLight( 0x404040, 2 );
+//light.position.set( 0, 0, camera.position.z );
+//light.castShadow = true;            // default false
+//light.shadow.mapSize.width = 1024;  // default 512
+//light.shadow.mapSize.height = 1024; // default 512
+//light.shadow.camera.near = 2;       // default 0.5
+//light.shadow.camera.far = 1500;  
+scene.add( light );
+
+// Texture loader
+const loader = new THREE.TextureLoader();
+const cardColor = new THREE.Color( 'white' );
+const backOfCardFile = loader.load( `./media/cards/card_back.jpg` );
+
+function Player( id, deck, deckPos, drawPos, drawOffset ) {
+    this.id = id;
+    this.deck = deck;
+    this.deckPos = deckPos;
+    this.drawPos = drawPos;
+    this.drawOffset = drawOffset;
+    this.offsetPos; // Used for placing cards when wars take place
+
+    this.addCard = function( card ) {
+        // Increase the deckHeight
+
+        deckPos[1] += 0.1 * 2;
+
+        return deck.push( card );
+    }
+
+    this.addCardBottom = function( card ){
+        deckPos[1] += 0.1 * 2;
+
+        return deck.unshift( card );
+    }
+
+    this.popCard = function( card ) {
+        
+        // Decrease the deckHeight
+        deckPos[1] -= 0.1 * 2;
+
+        return deck.pop();
+    }
+
+    this.isEmpty = function() {
+        return deck.length <= 0;
+    }
+
+    this.reformatDeck = function() {  
+        for(var i = 0; i < deck.length; i++) {
+            deck[i].card.position.setY(cTTY + (i * 0.2));
+        }
+    }
+
+}
+
+// Card object class
+function Card( name, filename, value, suit ) {
+
+    this.name = name;
+    this.fileName = filename;
+    this.value = value;
+    this.suit = suit;
+
+    this.init = function() {
+        
+        // https://stackoverflow.com/questions/11709760/how-can-i-put-two-different-textures-on-the-front-and-back-of-a-plane
+
+        this.geometry = new THREE.BoxGeometry( 0.1, 7, 3 );
+        //this.geometry2 = new THREE.BoxGeometry( 0.1, 7, 3 );
+        //this.geometry2.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI ) );
+
+        this.frontTexture = new THREE.MeshStandardMaterial({
+                                            color: cardColor,
+                                            map: loader.load(this.fileName),
+                                            side: THREE.FrontSide
+                                        });
+
+        this.backTexture = new THREE.MeshStandardMaterial({ 
+                                             color: cardColor,
+                                             map: backOfCardFile,
+                                             side: THREE.BackSide
+                                        });
+
+        this.sideTexture = new THREE.MeshStandardMaterial({ 
+                                             color: cardColor
+                                            });
+
+        //this.card = new THREE.Object3D();
+        //this.card.add( new THREE.Mesh( this.geometry1, this.frontTexture )) ;    
+        //this.card.add( new THREE.Mesh( this.geometry2, this.backTexture )) ;                                    
+                                
+       // this.materials = [ this.backTexture, this.frontTexture ];
+                                                
+       for (var i = 0, len = this.geometry.faces.length; i < len; i++) {
+           var face = this.geometry.faces[i].clone();
+           face.materialIndex = 1;
+           this.geometry.faces.push(face);
+           this.geometry.faceVertexUvs[0].push(this.geometry.faceVertexUvs[0][i].slice(0));
+        }
+
+        //this.card = SceneUtils.createMultiMaterialObject( this.geometry, [ this.frontTexture, this.backTexture ] );
+        this.card = new THREE.Mesh( this.geometry, [ this.frontTexture, this.backTexture, this.sideTexture, this.sideTexture, this.sideTexture, this.sideTexture ] ); 
+        this.card.castShadow = true;
+        //this.card.receiveShadow = true;
+    }
+
+}
+
+// Table object class
+function Table(table_texture, leg_texture, edge_texture) {
+    this.tableTexture = table_texture;
+    this.legTexture = leg_texture;
+    this.edgeTexture = edge_texture;
+
+    this.init = function() {
+
+        //
+        // Table Top:
+        //
+        var topGeom = new THREE.BoxGeometry(80, 1, 60);
+        var topMat = new THREE.MeshStandardMaterial({
+            roughness: 0.8,
+            color: 0xffffff,
+            metalness: 0.2,
+            bumpScale: 0.0005
+        });
+        loader.load( this.tableTexture, function ( map ) {
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            map.repeat.set( 5, 5 );
+            map.encoding = THREE.sRGBEncoding;
+            topMat.map = map;
+            topMat.needsUpdate = true;
+        } );
+        this.tableTop = new THREE.Mesh(topGeom, topMat);
+        this.tableTop.receiveShadow = true;
+        //
+        // Table Legs:
+        //
+        var legs = [];
+        // Init legs
+        var legGeom = new THREE.CylinderGeometry( 3, 1.5, 30, 4 );
+        var legMat = new THREE.MeshStandardMaterial({
+            roughness: 0.8,
+            color: 0xffffff,
+            metalness: 0.2,
+            bumpScale: 0.0005
+        });
+        loader.load( this.legTexture, function ( map ) {
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            //map.repeat.set( 3, 3 );
+            map.encoding = THREE.sRGBEncoding;
+            legMat.map = map;
+            legMat.needsUpdate = true;
+        } );
+        for(let i = 0; i < 4; i++) {
+            legs[i] = new THREE.Mesh( legGeom, legMat );
+            legs[i].receiveShadow = true;
+        }
+
+        // Position legs
+        legs[0].position.set(-20, -20, 20);
+        legs[1].position.set(-20, -20, -20);
+        legs[2].position.set(20, -20, 20);
+        legs[3].position.set(20, -20, -20);
+
+        //
+        // Table Edge:
+        //
+
+        // Init edges
+        var edges = [];
+        var edgeGeomLong = new THREE.BoxGeometry(5, 1.75, 75);
+        var edgeGeomShort = new THREE.BoxGeometry(5, 1.75, 60.1);
+        var edgeMat = new THREE.MeshStandardMaterial({
+            roughness: 0.8,
+            color: 0xffffff,
+            metalness: 0.2,
+            bumpScale: 0.0005
+        });
+        loader.load( this.edgeTexture, function ( map ) {
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            map.repeat.set( 1, 5 );
+            map.encoding = THREE.sRGBEncoding;
+            edgeMat.map = map;
+            edgeMat.needsUpdate = true;
+        });
+
+        edges[0] = new THREE.Mesh(edgeGeomLong, edgeMat);
+        edges[0].receiveShadow = true;
+        edges[0].castShadow = true;
+        edges[1] = new THREE.Mesh(edgeGeomLong, edgeMat);
+        edges[1].receiveShadow = true;
+        edges[1].castShadow = true;
+        edges[2] = new THREE.Mesh(edgeGeomShort, edgeMat);
+        edges[2].receiveShadow = true;
+        edges[2].castShadow = true;
+        edges[3] = new THREE.Mesh(edgeGeomShort, edgeMat);
+        edges[3].receiveShadow = true;
+        edges[3].castShadow = true;
+
+        // Rotate the long edges
+        edges[0].rotation.y += Math.PI / 2;
+        edges[1].rotation.y += Math.PI / 2;
+
+        // Position edges
+        edges[0].position.set(0, -5, 27.52);
+        edges[1].position.set(0, -5, -27.52);
+        edges[2].position.set(40, -5, 0);
+        edges[3].position.set(-40, -5, 0);
+
+        // Add to the scene
+        scene.add(this.tableTop);
+        for(let i = 0; i < 4; i++) {
+            scene.add(legs[i]);
+            scene.add(edges[i]);
+        }
+
+        // Move the table to the right location
+        this.tableTop.position.y = -5
+    }
+}
+
+// Credit for LightBulb object:
+// https://codepen.io/Vector_victor/pen/veVKpM
+function LightBulb() {
+    this.group = new THREE.Group();
+    this.toggleLight = function () {
+        this.bulbLight.visible = !this.bulbLight.visible;
+    }
+    this.init = function () {
+        this.group = new THREE.Group();
+        //main bulb
+        var bulbGeometry = new THREE.SphereGeometry(1, 32, 32);
+        this.bulbLight = new THREE.PointLight(0xffee88, 1, 5000, 10);
+        var bulbMat = new THREE.MeshStandardMaterial({
+            emissive: 0xffffee,
+            emissiveIntensity: 5,
+            color: 0xffffee,
+            roughness: 1
+        });
+        this.bulb = new THREE.Mesh(bulbGeometry, bulbMat);
+        this.bulbLight.castShadow = true;
+        this.bulb.add(this.bulbLight);
+        this.bulb.position.set(0, 2, 0);
+
+        var d = 200;
+
+        this.bulbLight.shadow.camera.left = -d;
+        this.bulbLight.shadow.camera.right = d;
+        this.bulbLight.shadow.camera.top = d;
+        this.bulbLight.shadow.camera.bottom = -d;
+
+        this.bulbLight.shadow.camera.far = 100;
+
+        //stem
+        var bulbStem = new THREE.CylinderGeometry(0.5, 0.65, 0.55, 32);
+        var stemMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffee,
+            emissiveIntensity: 5,
+            metalness: 0.8,
+            roughness: 0
+        });
+
+        this.bStem = new THREE.Mesh(bulbStem, stemMat);
+        this.bStem.position.set(0, 2.9, 0);
+        this.bStem.castShadow = true;
+        this.bStem.receiveShadow = true;
+
+        //plug main
+        var bulbPlug = new THREE.CylinderGeometry(0.52, 0.52, 1.2, 32);
+
+        var plugMat = new THREE.MeshStandardMaterial({
+            color: 0x807d7a
+        });
+
+        var plug = new THREE.Mesh(bulbPlug, plugMat);
+        plug.position.set(0, 3.2, 0);
+        plug.receiveShadow = true;
+        plug.castShadow = true;
+
+        //plug top
+        var topGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.2, 32);
+
+        var topMat = new THREE.MeshStandardMaterial({
+            color: 0xe8d905
+        });
+        var plugTop = new THREE.Mesh(topGeo, topMat);
+        plugTop.position.set(0, 3.75, 0);
+        plugTop.receiveShadow = true;
+        plugTop.castShadow = true;
+
+        //plug rings
+        var ringGeo = new THREE.TorusGeometry(0.52, 0.04, 4, 100);
+
+        var ringMat = new THREE.MeshStandardMaterial({
+            color: 0x807d7a
+        });
+
+        var ringY = 3.33;
+        for (let i = 0; i < 3; i++) {
+            var ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.set(0, ringY, 0);
+            this.group.add(ring);
+
+            ringY += 0.15;
+        }
+
+        //top ring
+        var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
+
+        var topRing = new THREE.Mesh(topRingGeo, ringMat);
+        topRing.position.set(0, 3.75, 0);
+        topRing.rotation.x = -Math.PI / 2;
+
+        //bottom ring
+        var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
+
+        var botRing = new THREE.Mesh(botRingGeo, ringMat);
+        botRing.position.set(0, 3.15, 0);
+        botRing.rotation.x = -Math.PI / 2;
+
+        //add to this.group
+        this.group.add(this.bStem);
+        this.group.add(this.bulb);
+        this.group.add(plug);
+        this.group.add(plugTop);
+        this.group.add(botRing);
+        this.group.add(topRing);
+
+        scene.add(this.group);
+        this.group.position.y = 0;
+        this.group.position.z = 0;
+        this.group.position.x = 0;
+    }
+}
+
+const table = new Table('./media/table/green_felt.jpg', './media/table/leg.jpg', './media/table/edge.jpg');
+table.init();
+
+const lightbulb = new LightBulb();
+lightbulb.init();
+lightbulb.group.position.y = 40;
+
+// Init all cards
+var cards = [];
+
+cards.push(new Card("2_of_clubs", `./media/cards/2_of_clubs.jpg`, 2, "clubs"));
+cards.push(new Card("2_of_diamonds", `./media/cards/2_of_diamonds.jpg`, 2, "diamonds"));
+cards.push(new Card("2_of_spades", `./media/cards/2_of_spades.jpg`, 2, "spades"));
+cards.push(new Card("2_of_hearts", `./media/cards/2_of_hearts.jpg`, 2, "hearts"));
+
+cards.push(new Card("3_of_clubs", `./media/cards/3_of_clubs.jpg`, 3, "clubs"));
+cards.push(new Card("3_of_diamonds", `./media/cards/3_of_diamonds.jpg`, 3, "diamonds"));
+cards.push(new Card("3_of_spades", `./media/cards/3_of_spades.jpg`, 3, "spades"));
+cards.push(new Card("3_of_hearts", `./media/cards/3_of_hearts.jpg`, 3, "hearts"));
+
+cards.push(new Card("4_of_clubs", `./media/cards/4_of_clubs.jpg`, 4, "clubs"));
+cards.push(new Card("4_of_diamonds", `./media/cards/4_of_diamonds.jpg`, 4, "diamonds"));
+cards.push(new Card("4_of_spades", `./media/cards/4_of_spades.jpg`, 4, "spades"));
+cards.push(new Card("4_of_hearts", `./media/cards/4_of_hearts.jpg`, 4, "hearts"));
+
+cards.push(new Card("5_of_clubs", `./media/cards/5_of_clubs.jpg`, 5, "clubs"));
+cards.push(new Card("5_of_diamonds", `./media/cards/5_of_diamonds.jpg`, 5, "diamonds"));
+cards.push(new Card("5_of_spades", `./media/cards/5_of_spades.jpg`, 5, "spades"));
+cards.push(new Card("5_of_hearts", `./media/cards/5_of_hearts.jpg`, 5, "hearts"));
+
+cards.push(new Card("6_of_clubs", `./media/cards/6_of_clubs.jpg`, 6, "clubs"));
+cards.push(new Card("6_of_diamonds", `./media/cards/6_of_diamonds.jpg`, 6, "diamonds"));
+cards.push(new Card("6_of_spades", `./media/cards/6_of_spades.jpg`, 6, "spades"));
+cards.push(new Card("6_of_hearts", `./media/cards/6_of_hearts.jpg`, 6, "hearts"));
+
+cards.push(new Card("6_of_clubs", `./media/cards/6_of_clubs.jpg`, 6, "clubs"));
+cards.push(new Card("6_of_diamonds", `./media/cards/6_of_diamonds.jpg`, 6, "diamonds"));
+cards.push(new Card("6_of_spades", `./media/cards/6_of_spades.jpg`, 6, "spades"));
+cards.push(new Card("6_of_hearts", `./media/cards/6_of_hearts.jpg`, 6, "hearts"));
+
+cards.push(new Card("7_of_clubs", `./media/cards/7_of_clubs.jpg`, 7, "clubs"));
+cards.push(new Card("7_of_diamonds", `./media/cards/7_of_diamonds.jpg`, 7, "diamonds"));
+cards.push(new Card("7_of_spades", `./media/cards/7_of_spades.jpg`, 7, "spades"));
+cards.push(new Card("7_of_hearts", `./media/cards/7_of_hearts.jpg`, 7, "hearts"));
+
+cards.push(new Card("8_of_clubs", `./media/cards/8_of_clubs.jpg`, 8, "clubs"));
+cards.push(new Card("8_of_diamonds", `./media/cards/8_of_diamonds.jpg`, 8, "diamonds"));
+cards.push(new Card("8_of_spades", `./media/cards/8_of_spades.jpg`, 8, "spades"));
+cards.push(new Card("8_of_hearts", `./media/cards/8_of_hearts.jpg`, 8, "hearts"));
+
+cards.push(new Card("9_of_clubs", `./media/cards/9_of_clubs.jpg`, 9, "clubs"));
+cards.push(new Card("9_of_diamonds", `./media/cards/9_of_diamonds.jpg`, 9, "diamonds"));
+cards.push(new Card("9_of_spades", `./media/cards/9_of_spades.jpg`, 9, "spades"));
+cards.push(new Card("9_of_hearts", `./media/cards/9_of_hearts.jpg`, 9, "hearts"));
+
+cards.push(new Card("jack_of_clubs", `./media/cards/jack_of_clubs.jpg`, 10, "clubs"));
+cards.push(new Card("jack_of_diamonds", `./media/cards/jack_of_diamonds.jpg`, 10, "diamonds"));
+cards.push(new Card("jack_of_spades", `./media/cards/jack_of_spades.jpg`, 10, "spades"));
+cards.push(new Card("jack_of_hearts", `./media/cards/jack_of_hearts.jpg`, 10, "hearts"));
+
+cards.push(new Card("queen_of_clubs", `./media/cards/queen_of_clubs.jpg`, 11, "clubs"));
+cards.push(new Card("queen_of_diamonds", `./media/cards/queen_of_diamonds.jpg`, 11, "diamonds"));
+cards.push(new Card("queen_of_spades", `./media/cards/queen_of_spades.jpg`, 11, "spades"));
+cards.push(new Card("queen_of_hearts", `./media/cards/queen_of_hearts.jpg`, 11, "hearts"));
+
+cards.push(new Card("king_of_clubs", `./media/cards/king_of_clubs.jpg`, 12, "clubs"));
+cards.push(new Card("king_of_diamonds", `./media/cards/king_of_diamonds.jpg`, 12, "diamonds"));
+cards.push(new Card("king_of_spades", `./media/cards/king_of_spades.jpg`, 12, "spades"));
+cards.push(new Card("king_of_hearts", `./media/cards/king_of_hearts.jpg`, 12, "hearts"));
+
+cards.push(new Card("ace_of_clubs", `./media/cards/ace_of_clubs.jpg`, 13, "clubs"));
+cards.push(new Card("ace_of_diamonds", `./media/cards/ace_of_diamonds.jpg`, 13, "diamonds"));
+cards.push(new Card("ace_of_spades", `./media/cards/ace_of_spades.jpg`, 13, "spades"));
+cards.push(new Card("ace_of_hearts", `./media/cards/ace_of_hearts.jpg`, 13, "hearts"));
+
+// Initilize all cards
+cards.forEach((card) => {
+    card.init();
+});
+
+// Shuffles the cards
+shuffle(cards);
+
+const controls = new OrbitControls( camera, renderer.domElement );
+controls.update();
+
+//scene.add( cards[0].card );
+//var priorCard = cards[0].card;
+
+
+/**
+ * Setting up the card counters for each player
+ */
+
+const fontLoader = new THREE.FontLoader();
+var wordFont = null;
+fontLoader.load( `./media/fonts/helvetiker_regular.typeface.json`, function(font) {
+    console.log(font);
+    wordFont = font;
+});
+var playersWords = [];
+
+function updateWords() {
+
+    // Remove all the words from the screen 
+    playersWords.forEach( (word) => {
+        scene.remove( word );
+    });
+
+    playersWords = [];
+
+    var fontGeometry1 = new THREE.TextGeometry( "" + players[0].deck.length, {
+		font: wordFont,
+		size: 2,
+		height: 0.5
+	} );
+    var fontGeometry2 = new THREE.TextGeometry( "" +players[1].deck.length, {
+		font: wordFont,
+		size: 2,
+		height: 0.5
+	} );
+    var fontGeometry3 = new THREE.TextGeometry( "" + players[2].deck.length, {
+		font: wordFont,
+		size: 2,
+		height: 0.5
+	} );
+
+    var fontMaterial = new THREE.MeshBasicMaterial({
+                            color: new THREE.Color('black')
+                        });
+
+    playersWords.push(new THREE.Mesh( fontGeometry1, fontMaterial ));
+    playersWords.push(new THREE.Mesh( fontGeometry2, fontMaterial ));
+    playersWords.push(new THREE.Mesh( fontGeometry3, fontMaterial ));
+
+    // Set each words x and z position
+    playersWords[0].position.set(33, 0, 12);
+    playersWords[1].position.set(-34, 0, 12);
+    playersWords[2].position.set(0, 0, -20);
+
+    // Rotate and place each word at the correct y
+    playersWords.forEach( (word) => {
+        word.rotation.x = -(Math.PI/2);
+        word.position.setY(-4);
+        scene.add( word );
+    });
+}
+
+const cTTY = -4;
+
+/**
+ * GAME STARTUP LOGIC GOES BELOW HERE 
+ */
+
+ // Determines if the game can play, if false then its in the middle of an animation
+ // Starts at false, because we do not want the player to be able to make a move during the shuffle and dealing animations.
+var canPlay = false;
+
+var lastCardY = cTTY;
+// Create the deck in the middle
+cards.forEach( (card) => {
+    card.card.position.set(0, lastCardY, 0);
+    card.card.rotation.z = -(Math.PI/2);
+    scene.add( card.card );
+
+    lastCardY += card.card.geometry.parameters.width * 2;
+});
+
+
+// Create the players, a list of three players
+var players = [ 
+    new Player(0, [], [25, cTTY, 10], [15, cTTY, 10], -5),      // Player One
+    new Player(1, [], [-25, cTTY, 10], [-15, cTTY, 10], -5),    // Player Two
+    new Player(2, [], [0 , cTTY, -15], [0, cTTY, -10], 5)       // Player Three
+];
+
+// Options for the dealing cards anination
+const dealingAnimationOptions = {
+    duration: 5000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {     
+    },
+    callback : function(){
+        canPlay = true;
+    }};
+
+async function dealCardsAnimation() {
+
+    while( (cards.length - 3) >= 0 ) {
+        
+        // Pop three cards off of the cards array
+        var card1 = cards.pop();
+        var card2 = cards.pop();
+        var card3 = cards.pop();
+
+        // Assign the cards to the three players
+
+        players[0].addCard( card1 );
+        players[1].addCard( card2 );
+        players[2].addCard( card3 );
+
+        // Send the cards to each players deck
+
+        var vec0 = new THREE.Vector3(players[0].deckPos[0], players[0].deckPos[1], players[0].deckPos[2]); 
+        var vec1 = new THREE.Vector3(players[1].deckPos[0], players[1].deckPos[1], players[1].deckPos[2]); 
+        var vec2 = new THREE.Vector3(players[2].deckPos[0], players[2].deckPos[1], players[2].deckPos[2]); 
+
+        await startMoveAnimation( card1.card.position, vec0, dealingAnimationOptions );
+        await startMoveAnimation( card2.card.position, vec1, dealingAnimationOptions );
+        await startMoveAnimation( card3.card.position, vec2, dealingAnimationOptions );
+    }
+
+    // Remove the cards that are leftover
+    cards.forEach( (card) => {
+        scene.remove(card.card);
+    })
+
+}
+// Deal the cards to each player.
+
+console.log(players);
+
+var clock = new THREE.Clock();
+var speed = 2; //units a second
+clock.start();
+var lastColorProcTime = 0;
+
+// Starts the animation process
+animate();
+
+
+async function startMoveAnimation(vectorToAnimate, targetz, options){
+    options = options || {};
+    
+    var to = targetz || THREE.Vector3(),
+        easing = options.easing || TWEEN.Easing.Quadratic.In,
+        duration = options.duration || 1000;
+    
+    var tweenVector3 = new TWEEN.Tween(vectorToAnimate)
+        .to({ x: to.x, y: to.y, z: to.z, }, duration)
+        .easing(easing)
+        .onUpdate(function(d) {
+            if(options.update){ 
+                options.update(d);
+            }
+         })
+        .onComplete(function(){
+          if(options.callback) options.callback();
+        });
+    
+    tweenVector3.start();
+    return tweenVector3;
+}
+
+
+
+/**
+players.forEach((player) => {
+    var pCard = cards[getRandomArbitraryInt(0, cards.length - 1)].card.clone();
+    console.log(pCard);
+    pCard.position.set(player.deckPos[0], player.deckPos[1] - cardToTableYSubtraction, player.deckPos[2]);
+    pCard.rotation.z = -(Math.PI/2);
+    scene.add(pCard);
+});
+**/
+
+// Options for the drawing cards anination
+const drawingCardAnimationOptions = {
+    duration: 1000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        
+    }};
+// Options for the giving cards to winner cards anination
+const givingCardsToWinnerAnimationOptions = {
+    duration: 1000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        canPlay = true;
+    }};
+
+// Options for the war animation
+const warGiveAnmiation = {
+    duration: 1000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        canPlay = true;
+    }};
+
+// Options for camera animation upon war
+const warCameraAnimation = {
+    duration: 2000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        canPlay = true;
+    }};
+
+/**
+ * Plays a players card
+ */
+async function playMove() {
+
+    var cardsFromPlayers = [];
+    var oldCardsFromPlayers = [];
+    var blankCards = []; // Face-down cards from warring
+
+    // Play a card and do card animation
+    players.forEach(async (player) => {
+        // If the players deck is empty return
+        if(player.isEmpty()) return;
+
+        // Reset offsetPosition to player's z coords
+        player.offsetPos = player.drawPos[2];
+
+        var pCard = player.popCard();
+
+        await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.drawPos[2]), drawingCardAnimationOptions);
+        pCard.card.rotation.z = (Math.PI/2);
+
+        // Sets the card to the player who delt its card
+        pCard.currentPlayer = player.id;
+
+        cardsFromPlayers.push(pCard);
+    });
+
+    setTimeout(async () => {
+        // Determine who wins here
+        console.log("Determine winners");
+
+        var result = checkOutcome(cardsFromPlayers);
+
+        var highestCard = result[0];
+        var isWar = result[1];
+        blankCards = [];
+
+        // Warring functionality
+        while(isWar) {
+            // Animate the war sequence
+            await warAnimation();
+
+            // Clear cardsFromPlayers into oldCardsFromPlayers, then do the game movement + logic
+            cardsFromPlayers.forEach( (card) => {
+                oldCardsFromPlayers.push(card);
+            });
+            cardsFromPlayers = [];
+            await makeWarMove(cardsFromPlayers, blankCards);
+
+
+            await new Promise(_ => setTimeout(_, drawingCardAnimationOptions.duration + 2000)) // Wait animation time + 2s for the above to complete, then calculate
+            result = checkOutcome(cardsFromPlayers);
+            highestCard = result[0];
+            isWar = result[1];
+        }
+
+        // We know there is no more war (we ran through that above), so play the rest of the game out
+        if(highestCard == undefined)
+            throw new Error('A winning card was not found.');
+
+        // Determine winner
+        var pWinner = players[highestCard.currentPlayer];
+
+        cardsFromPlayers.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            gCard.card.rotation.z = -(Math.PI/2);
+            pWinner.addCardBottom(gCard);
+        });
+
+        oldCardsFromPlayers.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            gCard.card.rotation.z = -(Math.PI/2);
+            pWinner.addCardBottom(gCard);
+        });
+
+        blankCards.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            // Already face-down
+            pWinner.addCardBottom(gCard);
+        });
+
+
+        // Reformat decks and determine if there is a winner
+        setTimeout(async () => {
+            var playersStillIn = [];
+
+            players.forEach((player) => {
+                if(!player.isEmpty()) {
+                    player.reformatDeck();
+                    playersStillIn.push(player);
+                }
+            });
+
+            if(playersStillIn.length <= 1) {
+                    // WE HAVE A WINNER! THIS IS BROKEN
+                    console.log("Player " + playersStillIn[0].id + " is the winner!");
+
+                    canPlay = false;
+
+                    setTimeout(async () => { 
+                        window.location.reload();
+                    }, 7000);
+            }
+        
+    }, givingCardsToWinnerAnimationOptions.duration);
+         }, drawingCardAnimationOptions.duration + 2000);
+
+    
+    
+}
+/**
+ * Checks the outcome of the current hands being drawn (based on a list of cards provided).
+ */
+ function checkOutcome(cardsFromPlayers) {
+    //console.log(cardsFromPlayers);
+
+    var highestCard = null;
+    if(cardsFromPlayers.length == 1) {
+        highestCard = cardsFromPlayers.filter((card) => {
+            return cardsFromPlayers[0].value === card.value;
+        })[0];
+    } else {
+        highestCard = cardsFromPlayers.filter((card) => {
+        return cardsFromPlayers.length == 2 ?
+            Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value) === card.value
+             :
+            Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value, cardsFromPlayers[2].value) === card.value;
+    })[0];
+    }
+    
+    console.log("Highest Card:");
+    console.log(highestCard);
+    var isWar = false;
+    cardsFromPlayers.forEach(async (card) => {
+        if(highestCard.value == card.value && highestCard !== card) {
+            // This is a TIE of two of the same values, DO A WAR!!!!!!!!!!
+            isWar = true;
+        }
+    });
+    return [highestCard, isWar];
+}
+
+async function makeWarMove(cardsFromPlayers, blankCards) {
+
+    players.forEach(async (player) => {
+
+        // If the players deck is empty return
+        if(player.isEmpty()) return;
+
+        var blankCard = player.popCard();
+        var pCard = player.popCard();
+
+        // Sets the card to the player who delt its card
+        pCard.currentPlayer = player.id;
+
+        blankCards.push(blankCard);
+        cardsFromPlayers.push(pCard);
+        
+        // Increase the offset
+        player.offsetPos += player.drawOffset;
+        // Blank card animation
+        await startMoveAnimation(blankCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.offsetPos), drawingCardAnimationOptions);
+        // Increase the offset (again -- this time for the play card)
+        player.offsetPos += player.drawOffset;
+        // Play card animation
+        await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.offsetPos), drawingCardAnimationOptions);
+        pCard.card.rotation.z = (Math.PI/2);
+
+    });
+}
+
+async function warAnimation() {
+    // Animate the camera
+    await animateCamera(false); // Not returning
+    setTimeout(async () => {
+        await animateCamera(true); // Returning
+        setTimeout(async () => {
+            console.log("Returning from war animation");
+            return;
+        }, warCameraAnimation.duration + 1000);
+    }, warCameraAnimation.duration + 1000);
+
+    // Flicker lights
+    await lightFlicker();
+}
+
+async function animateCamera(returnCam) { // Reverse is a 1 or -1 determining forwards / backwards
+    var destination = new THREE.Vector3(0, 60, -150);
+    if(returnCam)
+        destination.set(cameraStartX, cameraStartY, cameraStartZ);
+    
+    await startMoveAnimation(camera.position, destination, warCameraAnimation);
+    return;
+}
+
+async function lightFlicker() {
+    console.log("Flickering");
+    // DONT LOOK BELOW! UGLY!
+    lightbulb.toggleLight();
+    setTimeout(async () => {
+        lightbulb.toggleLight();
+        setTimeout(async () => {
+            lightbulb.toggleLight();
+            setTimeout(async () => {
+                lightbulb.toggleLight();
+                    setTimeout(async () => {
+                        lightbulb.toggleLight();
+                        setTimeout(async () => {
+                        lightbulb.toggleLight();
+                    }, 500);
+                }, 500);
+            }, 500);
+        }, 500);
+    }, 500);
+
+    return;
+}
+
+document.addEventListener('keypress', keypressed);
+
+function keypressed( event )
+{
+    switch(event.key) {
+        case "n": {
+            if(canPlay) {
+                canPlay = false;
+                playMove();
+            }
+            break;
+        }
+        case "c": {
+            if(canPlay) {
+                warAnimation();
+            }
+            break;
+        }
+        case "l": light.visible = !light.visible; break;
+        case "p": lightbulb.toggleLight(); break;
+        case "m": renderer.shadowMap.enabled = !renderer.shadowMap.enabled; break;
+        case "w": lightbulb.group.position.z += 1; break;
+        case "a": lightbulb.group.position.x += 1; break;
+        case "s": lightbulb.group.position.z -= 1; break;
+        case "d": lightbulb.group.position.x -= 1; break;
+    }		
+}
+
+function animate() {
+    //priorCard.rotation.y += 0.0075
+
+    if(wordFont != null) {
+
+        // Changes the color every second lower bound.
+        if((lastColorProcTime + 1) < clock.getElapsedTime()) {
+
+            // Update the word geometries.
+            updateWords();
+
+            // Update the text color for each player word
+            const NewColor = new THREE.Color(Math.random() * 0xffffff);
+
+            playersWords.forEach( (word) => {
+                word.material.color = NewColor;
+            });
+
+            playersWords[0].geometry.parameters.text = "15";
+            
+            lastColorProcTime = clock.getElapsedTime();
+        }
+    }
+
+    // Updates all tweens.
+    TWEEN.update();
+    camera.lookAt(0,0,0);
+    requestAnimationFrame(animate);
+    render();
+}
+
+function render() {
+    renderer.render( scene , camera );
+}
+
+// Start the animation loop
+animate();
+
+// Deal the cards.
+dealCardsAnimation();
+
+</script>
+
+</body>
+</html>
